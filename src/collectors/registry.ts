@@ -1,7 +1,10 @@
 import type { AppConfig } from "../config/schema.js";
 import type { Provider } from "../types/hotword.js";
+import { collectDouyinSuggestions } from "./douyin-suggestions.js";
 import { collectJdSuggestions } from "./jd-suggestions.js";
+import { collectPinduoduoSuggestions } from "./pinduoduo-suggestions.js";
 import { collectTaobaoSuggestions } from "./taobao-suggestions.js";
+import { collectXiaohongshuSuggestions } from "./xiaohongshu-suggestions.js";
 import type { CollectorOutput, FetchLike } from "./types.js";
 
 export interface LiveCollectorDefinition {
@@ -13,6 +16,18 @@ const liveCollectors: Record<string, LiveCollectorDefinition> = {
   taobao: {
     provider: "taobao",
     collect: collectTaobaoSuggestions,
+  },
+  douyin: {
+    provider: "douyin",
+    collect: collectDouyinSuggestions,
+  },
+  xiaohongshu: {
+    provider: "xiaohongshu",
+    collect: collectXiaohongshuSuggestions,
+  },
+  pinduoduo: {
+    provider: "pinduoduo",
+    collect: collectPinduoduoSuggestions,
   },
   jd: {
     provider: "jd",

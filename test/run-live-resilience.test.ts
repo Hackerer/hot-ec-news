@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -9,6 +9,17 @@ import { runLiveCollection } from "../src/pipeline/run-live-collection.js";
 describe("runLiveCollection resilience", () => {
   test("continues when one provider fails and records warnings", async () => {
     const rootDir = mkdtempSync(path.join(tmpdir(), "hot-ec-news-resilience-"));
+    mkdirSync(path.join(rootDir, "config"), { recursive: true });
+    writeFileSync(
+      path.join(rootDir, "config", "app.json"),
+      JSON.stringify({
+        sources: [
+          { provider: "taobao", enabled: true, tier: "primary", kind: "platform_suggestions" },
+          { provider: "jd", enabled: true, tier: "primary", kind: "platform_suggestions" },
+        ],
+      }),
+      "utf8",
+    );
     const fetchStub: typeof fetch = async (input) => {
       const url = String(input);
       if (url.includes("suggest.taobao.com")) {

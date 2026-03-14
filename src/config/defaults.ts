@@ -19,7 +19,19 @@ export function createDefaultConfig(): AppConfig {
         kind: "platform_suggestions",
       },
       {
-        provider: "jd",
+        provider: "xiaohongshu",
+        enabled: true,
+        tier: "primary",
+        kind: "platform_suggestions",
+      },
+      {
+        provider: "douyin",
+        enabled: true,
+        tier: "primary",
+        kind: "platform_suggestions",
+      },
+      {
+        provider: "pinduoduo",
         enabled: true,
         tier: "primary",
         kind: "platform_suggestions",

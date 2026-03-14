@@ -73,7 +73,7 @@ program
 
 program
   .command("collect:live")
-  .description("Collect live keywords from Taobao and JD suggestion endpoints")
+  .description("Collect live keywords from enabled suggestion endpoints")
   .action(async () => {
     const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
     const result = await runLiveCollection(rootDir);
@@ -123,6 +123,7 @@ program
   .command("push:report")
   .description("Push the latest report through WeCom or email")
   .requiredOption("--channel <channel>", "wecom or email")
+  .option("--format <format>", "digest or full", "digest")
   .option("--dry-run", "Write a preview instead of sending", false)
   .option("--webhook <url>", "WeCom webhook URL")
   .option("--smtp-host <host>", "SMTP host")
@@ -135,6 +136,7 @@ program
     const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
     const pushOptions: PushLatestReportOptions = {
       channel: options.channel,
+      format: options.format,
       explicitRoot: rootDir,
       dryRun: options.dryRun,
     };

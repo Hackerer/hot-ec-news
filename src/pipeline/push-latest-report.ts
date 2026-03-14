@@ -1,17 +1,20 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { loadAppConfig } from "../config/load-config.js";
 import { renderEmailPreview, sendEmailReport } from "../pushers/email.js";
 import { renderEmailHtml, renderPushDigestMarkdown } from "../pushers/render-digest.js";
+import { renderFullReportEmailHtml } from "../pushers/render-full-report.js";
 import { buildWecomPayload, sendWecomReport } from "../pushers/wecom.js";
 import { HotwordDatabase } from "../storage/database.js";
 import { createAppPaths, ensureAppDirectories, resolveRootDir } from "../utils/paths.js";
 
 type PushChannel = "wecom" | "email";
+type PushFormat = "digest" | "full";
 
 export interface PushLatestReportOptions {
   channel: PushChannel;
+  format?: PushFormat;
   explicitRoot?: string;
   dryRun?: boolean;
   webhookUrl?: string;
@@ -38,9 +41,22 @@ export async function pushLatestReport(options: PushLatestReportOptions): Promis
     throw new Error("No report available to push.");
   }
 
+  const format = options.format ?? "digest";
+  if (format === "full" && options.channel !== "email") {
+    throw new Error("Full report push format is only supported for email.");
+  }
+
   const digestMarkdown = renderPushDigestMarkdown(latest.reportKey, latest.summary);
-  const emailHtml = renderEmailHtml(latest.reportKey, latest.summary);
-  const previewBase = path.join(paths.pushPreviewDir, `${latest.reportKey}-${options.channel}`);
+  const fullReportMarkdown = format === "full" ? readFileSync(latest.path, "utf8") : null;
+  const emailText = fullReportMarkdown ?? digestMarkdown;
+  const emailHtml =
+    format === "full"
+      ? renderFullReportEmailHtml(latest.reportKey, emailText)
+      : renderEmailHtml(latest.reportKey, latest.summary);
+  const previewBase = path.join(
+    paths.pushPreviewDir,
+    `${latest.reportKey}-${options.channel}${format === "full" ? "-full" : ""}`,
+  );
 
   if (options.channel === "wecom") {
     if (options.dryRun || !options.webhookUrl) {
@@ -65,7 +81,11 @@ export async function pushLatestReport(options: PushLatestReportOptions): Promis
     !options.emailTo
   ) {
     const previewPath = `${previewBase}.json`;
-    const preview = await renderEmailPreview(`hot-ec-news ${latest.reportKey}`, digestMarkdown, emailHtml);
+    const preview = await renderEmailPreview(
+      `hot-ec-news ${latest.reportKey}${format === "full" ? " full" : ""}`,
+      emailText,
+      emailHtml,
+    );
     writeFileSync(previewPath, preview, "utf8");
     return previewPath;
   }
@@ -78,8 +98,8 @@ export async function pushLatestReport(options: PushLatestReportOptions): Promis
     pass: options.smtpPass,
     from: options.emailFrom,
     to: options.emailTo,
-    subject: `hot-ec-news ${latest.reportKey}`,
-    text: digestMarkdown,
+    subject: `hot-ec-news ${latest.reportKey}${format === "full" ? " full" : ""}`,
+    text: emailText,
     html: emailHtml,
   });
 

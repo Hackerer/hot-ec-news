@@ -4,7 +4,7 @@ Cross-platform ecommerce hot keyword pipeline focused on apparel, shoes, and jew
 
 ## Scope
 
-- Primary sources: Taobao/Tmall, JD
+- Primary sources: Taobao/Tmall, Xiaohongshu, Douyin, and Pinduoduo
 - Secondary validation sources: third-party platforms such as Chanmama and Feigua
 - Runtime targets: macOS and Windows
 - Output: daily markdown report plus digest-style WeCom/email push previews
@@ -27,13 +27,14 @@ npm test
 
 - `npm run init`: initialize storage directories and SQLite database
 - `npm run demo:fixtures`: run the fixture pipeline and generate a sample report
-- `npm run collect:live`: collect live keywords from Taobao and JD suggestion endpoints
+- `npm run collect:live`: collect live keywords from the enabled platform suggestion endpoints
 - `npx tsx src/cli/index.ts import:third-party --provider chanmama --file fixtures/third-party/chanmama-sample.csv`: import a third-party CSV export
 - `npm run report:validated`: build a validated report from the latest collected date
 - `npm run run:daily`: run live collection, auto-import files from `data/imports`, and generate a validated report
 - `run:daily` now reports both `Imported files` and `Skipped files` for third-party CSVs
 - `npx tsx src/cli/index.ts config:show`: inspect the resolved config after defaults + `config/app.json`
 - `npm run push:report -- --channel wecom --dry-run`: preview a push payload
+- `npm run push:report -- --channel email --format full --dry-run`: preview a full-report email body
 - `npm run schedule:generate -- --platform macos --time 09:00`: generate a scheduler file
 - `npx tsx src/cli/index.ts schedule:install --platform macos --time 09:00`: install the scheduler on the matching OS
 - `npx tsx src/cli/index.ts schedule:status --platform macos`: inspect scheduler status
@@ -52,6 +53,7 @@ npm test
 - Enable or disable `sources`
 - Enable `pushChannels`
 - Set `autoPushOnDaily` to `true` if you want `run:daily` to generate push previews or real pushes automatically
+- `XIAOHONGSHU_COOKIE` and `PINDUODUO_COOKIE` are optional environment variables for platforms that may return empty data without a logged-in web session
 
 ## Project Docs
 

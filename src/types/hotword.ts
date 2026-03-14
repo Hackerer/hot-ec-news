@@ -16,6 +16,8 @@ export type Provider =
   | "taobao"
   | "jd"
   | "douyin"
+  | "xiaohongshu"
+  | "pinduoduo"
   | "chanmama"
   | "feigua"
   | "qiangua"
@@ -26,6 +28,8 @@ export const providerValues = [
   "taobao",
   "jd",
   "douyin",
+  "xiaohongshu",
+  "pinduoduo",
   "chanmama",
   "feigua",
   "qiangua",
@@ -37,6 +41,8 @@ export const providerLabels = {
   taobao: "淘宝/天猫",
   jd: "京东",
   douyin: "抖音",
+  xiaohongshu: "小红书",
+  pinduoduo: "拼多多",
   chanmama: "蝉妈妈",
   feigua: "飞瓜数据",
   qiangua: "千瓜数据",

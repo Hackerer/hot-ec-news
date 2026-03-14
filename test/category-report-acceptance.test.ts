@@ -37,4 +37,27 @@ describe("category report acceptance", () => {
       expect(content).toContain("淘宝/天猫 Top15");
     }
   });
+
+  test("produces a full email preview from the generated markdown report", async () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), "hot-ec-news-category-full-"));
+    const result = runFixtureDemo(rootDir);
+
+    const emailPreview = await pushLatestReport({
+      channel: "email",
+      format: "full",
+      explicitRoot: rootDir,
+      dryRun: true,
+    });
+
+    expect(existsSync(result.reportPath)).toBe(true);
+    expect(existsSync(emailPreview)).toBe(true);
+
+    const markdown = readFileSync(result.reportPath, "utf8");
+    const email = readFileSync(emailPreview, "utf8");
+
+    expect(markdown).toContain("# 每日电商热词日报");
+    expect(email).toContain("每日电商热词日报");
+    expect(email).toContain("第三方校验结果");
+    expect(email).toContain("连续上榜词");
+  });
 });

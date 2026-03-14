@@ -8,7 +8,12 @@ describe("collector registry", () => {
   test("returns enabled primary collectors", () => {
     const config = createDefaultConfig();
     const collectors = listEnabledLiveCollectors(config);
-    expect(collectors.map((collector) => collector.provider)).toEqual(["taobao", "jd"]);
+    expect(collectors.map((collector) => collector.provider)).toEqual([
+      "taobao",
+      "xiaohongshu",
+      "douyin",
+      "pinduoduo",
+    ]);
   });
 });
 

@@ -43,6 +43,26 @@ describe("pushLatestReport", () => {
     expect(preview).toContain("\"html\":\"<!doctype html>");
     expect(preview).toContain("整体搜索热词 Top15");
   });
+
+  test("creates a dry-run full email preview", async () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), "hot-ec-news-email-full-"));
+    runFixtureDemo(rootDir);
+
+    const previewPath = await pushLatestReport({
+      channel: "email",
+      format: "full",
+      explicitRoot: rootDir,
+      dryRun: true,
+    });
+
+    expect(existsSync(previewPath)).toBe(true);
+    const preview = readFileSync(previewPath, "utf8");
+    expect(preview).toContain("\"subject\":\"hot-ec-news fixture-");
+    expect(preview).toContain(" full\"");
+    expect(preview).toContain("每日电商热词日报");
+    expect(preview).toContain("第三方校验结果");
+    expect(preview).toContain("完整日报正文");
+  });
 });
 
 describe("buildWecomPayload", () => {

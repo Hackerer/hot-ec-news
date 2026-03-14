@@ -12,6 +12,10 @@ describe("loadAppConfig", () => {
     const config = loadAppConfig(rootDir);
 
     expect(config.sources.some((source) => source.provider === "taobao")).toBe(true);
+    expect(config.sources.some((source) => source.provider === "xiaohongshu")).toBe(true);
+    expect(config.sources.some((source) => source.provider === "douyin")).toBe(true);
+    expect(config.sources.some((source) => source.provider === "pinduoduo")).toBe(true);
+    expect(config.sources.some((source) => source.provider === "jd")).toBe(false);
     expect(config.scheduler.defaultTime).toBe("09:00");
   });
 
