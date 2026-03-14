@@ -9,10 +9,15 @@ export interface EmailPushOptions {
   from: string;
   to: string;
   subject: string;
-  markdown: string;
+  text: string;
+  html?: string;
 }
 
-export async function renderEmailPreview(subject: string, markdown: string): Promise<string> {
+export async function renderEmailPreview(
+  subject: string,
+  text: string,
+  html?: string,
+): Promise<string> {
   const transport = nodemailer.createTransport({
     jsonTransport: true,
   });
@@ -21,7 +26,8 @@ export async function renderEmailPreview(subject: string, markdown: string): Pro
     from: "preview@hot-ec-news.local",
     to: "preview@hot-ec-news.local",
     subject,
-    text: markdown,
+    text,
+    html,
   });
 
   return typeof info.message === "string" ? info.message : JSON.stringify(info.message);
@@ -42,6 +48,7 @@ export async function sendEmailReport(options: EmailPushOptions): Promise<void> 
     from: options.from,
     to: options.to,
     subject: options.subject,
-    text: options.markdown,
+    text: options.text,
+    html: options.html,
   });
 }

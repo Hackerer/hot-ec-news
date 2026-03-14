@@ -1,7 +1,8 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { renderEmailPreview, sendEmailReport } from "../pushers/email.js";
+import { renderEmailHtml, renderPushDigestMarkdown } from "../pushers/render-digest.js";
 import { buildWecomPayload, sendWecomReport } from "../pushers/wecom.js";
 import { HotwordDatabase } from "../storage/database.js";
 import { createAppPaths, ensureAppDirectories, resolveRootDir } from "../utils/paths.js";
@@ -35,19 +36,20 @@ export async function pushLatestReport(options: PushLatestReportOptions): Promis
     throw new Error("No report available to push.");
   }
 
-  const markdown = readFileSync(latest.path, "utf8");
+  const digestMarkdown = renderPushDigestMarkdown(latest.reportKey, latest.summary);
+  const emailHtml = renderEmailHtml(latest.reportKey, latest.summary);
   const previewBase = path.join(paths.pushPreviewDir, `${latest.reportKey}-${options.channel}`);
 
   if (options.channel === "wecom") {
     if (options.dryRun || !options.webhookUrl) {
       const previewPath = `${previewBase}.json`;
-      writeFileSync(previewPath, JSON.stringify(buildWecomPayload(markdown), null, 2), "utf8");
+      writeFileSync(previewPath, JSON.stringify(buildWecomPayload(digestMarkdown), null, 2), "utf8");
       return previewPath;
     }
 
     await sendWecomReport({
       webhookUrl: options.webhookUrl,
-      markdown,
+      markdown: digestMarkdown,
     });
     return latest.path;
   }
@@ -61,7 +63,7 @@ export async function pushLatestReport(options: PushLatestReportOptions): Promis
     !options.emailTo
   ) {
     const previewPath = `${previewBase}.json`;
-    const preview = await renderEmailPreview(`hot-ec-news ${latest.reportKey}`, markdown);
+    const preview = await renderEmailPreview(`hot-ec-news ${latest.reportKey}`, digestMarkdown, emailHtml);
     writeFileSync(previewPath, preview, "utf8");
     return previewPath;
   }
@@ -75,7 +77,8 @@ export async function pushLatestReport(options: PushLatestReportOptions): Promis
     from: options.emailFrom,
     to: options.emailTo,
     subject: `hot-ec-news ${latest.reportKey}`,
-    markdown,
+    text: digestMarkdown,
+    html: emailHtml,
   });
 
   return latest.path;

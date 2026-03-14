@@ -238,10 +238,15 @@ export class HotwordDatabase {
       .run(reportKey, format, outputPath, report.generatedAt, JSON.stringify(report));
   }
 
-  getLatestReport(): { reportKey: string; path: string; generatedAt: string } | null {
+  getLatestReport(): {
+    reportKey: string;
+    path: string;
+    generatedAt: string;
+    summary: DailyReport;
+  } | null {
     const row = this.db
       .prepare(`
-        SELECT report_key AS reportKey, path, generated_at AS generatedAt
+        SELECT report_key AS reportKey, path, generated_at AS generatedAt, summary_json AS summaryJson
         FROM reports
         ORDER BY generated_at DESC
         LIMIT 1
@@ -256,6 +261,7 @@ export class HotwordDatabase {
       reportKey: String(row.reportKey),
       path: String(row.path),
       generatedAt: String(row.generatedAt),
+      summary: JSON.parse(String(row.summaryJson)) as DailyReport,
     };
   }
 }

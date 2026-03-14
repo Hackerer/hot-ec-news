@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -20,6 +20,11 @@ describe("pushLatestReport", () => {
     });
 
     expect(existsSync(previewPath)).toBe(true);
+    const payload = JSON.parse(readFileSync(previewPath, "utf8")) as {
+      markdown: { content: string };
+    };
+    expect(payload.markdown.content).toContain("## 高可信热词");
+    expect(payload.markdown.content).toContain("## 待人工复核");
   });
 
   test("creates a dry-run email preview", async () => {
@@ -33,6 +38,9 @@ describe("pushLatestReport", () => {
     });
 
     expect(existsSync(previewPath)).toBe(true);
+    const preview = readFileSync(previewPath, "utf8");
+    expect(preview).toContain("\"html\":\"<!doctype html>");
+    expect(preview).toContain("高可信热词");
   });
 });
 
