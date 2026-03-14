@@ -11,6 +11,20 @@ export interface ProcessedImportRecord {
   archivePath: string;
 }
 
+export interface PipelineRunRecord {
+  runKey: string;
+  command: string;
+  status: "success" | "failed";
+  startedAt: string;
+  finishedAt: string;
+  warnings: string[];
+  importedFiles: string[];
+  skippedFiles: string[];
+  pushOutputs: string[];
+  reportPath?: string;
+  errorMessage?: string;
+}
+
 export class HotwordDatabase {
   private readonly db: DatabaseSync;
 
@@ -58,6 +72,21 @@ export class HotwordDatabase {
         processed_at TEXT NOT NULL,
         archive_path TEXT NOT NULL,
         UNIQUE(provider, file_name, file_hash)
+      );
+
+      CREATE TABLE IF NOT EXISTS pipeline_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_key TEXT NOT NULL UNIQUE,
+        command TEXT NOT NULL,
+        status TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        finished_at TEXT NOT NULL,
+        warnings_json TEXT NOT NULL,
+        imported_files_json TEXT NOT NULL,
+        skipped_files_json TEXT NOT NULL,
+        push_outputs_json TEXT NOT NULL,
+        report_path TEXT,
+        error_message TEXT
       );
     `);
   }
@@ -375,5 +404,86 @@ export class HotwordDatabase {
       processedAt: String(row.processedAt),
       archivePath: String(row.archivePath),
     }));
+  }
+
+  savePipelineRun(record: PipelineRunRecord): void {
+    this.db
+      .prepare(`
+        INSERT INTO pipeline_runs (
+          run_key,
+          command,
+          status,
+          started_at,
+          finished_at,
+          warnings_json,
+          imported_files_json,
+          skipped_files_json,
+          push_outputs_json,
+          report_path,
+          error_message
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(run_key) DO UPDATE SET
+          status = excluded.status,
+          finished_at = excluded.finished_at,
+          warnings_json = excluded.warnings_json,
+          imported_files_json = excluded.imported_files_json,
+          skipped_files_json = excluded.skipped_files_json,
+          push_outputs_json = excluded.push_outputs_json,
+          report_path = excluded.report_path,
+          error_message = excluded.error_message
+      `)
+      .run(
+        record.runKey,
+        record.command,
+        record.status,
+        record.startedAt,
+        record.finishedAt,
+        JSON.stringify(record.warnings),
+        JSON.stringify(record.importedFiles),
+        JSON.stringify(record.skippedFiles),
+        JSON.stringify(record.pushOutputs),
+        record.reportPath ?? null,
+        record.errorMessage ?? null,
+      );
+  }
+
+  getLatestPipelineRun(): PipelineRunRecord | null {
+    const row = this.db
+      .prepare(`
+        SELECT
+          run_key AS runKey,
+          command,
+          status,
+          started_at AS startedAt,
+          finished_at AS finishedAt,
+          warnings_json AS warningsJson,
+          imported_files_json AS importedFilesJson,
+          skipped_files_json AS skippedFilesJson,
+          push_outputs_json AS pushOutputsJson,
+          report_path AS reportPath,
+          error_message AS errorMessage
+        FROM pipeline_runs
+        ORDER BY started_at DESC
+        LIMIT 1
+      `)
+      .get() as Record<string, unknown> | undefined;
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      runKey: String(row.runKey),
+      command: String(row.command),
+      status: String(row.status) as PipelineRunRecord["status"],
+      startedAt: String(row.startedAt),
+      finishedAt: String(row.finishedAt),
+      warnings: JSON.parse(String(row.warningsJson)) as string[],
+      importedFiles: JSON.parse(String(row.importedFilesJson)) as string[],
+      skippedFiles: JSON.parse(String(row.skippedFilesJson)) as string[],
+      pushOutputs: JSON.parse(String(row.pushOutputsJson)) as string[],
+      ...(row.reportPath ? { reportPath: String(row.reportPath) } : {}),
+      ...(row.errorMessage ? { errorMessage: String(row.errorMessage) } : {}),
+    };
   }
 }

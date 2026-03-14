@@ -18,6 +18,7 @@
 12. `v12` 交付状态总览，统一报告/调度/推送准备度
 13. `v13` third-party processed ledger，避免重复扫描重复导入
 14. `v14` doctor 生产预检，提前识别交付失败风险
+15. `v15` pipeline run audit，记录最近一次 `run:daily` 的输入输出与结果
 
 ## 验收项
 
@@ -38,10 +39,11 @@
 - 可一眼查看当前系统是否具备日报、调度和推送交付条件
 - 第三方自动导入可识别“已处理文件”并自动跳过
 - 可在真正开启日推前先跑生产预检
+- 可回看最近一次 `run:daily` 的导入、跳过、告警和结果
 
 ## 实际结果
 
-- 自动化测试：`38` 项全部通过
+- 自动化测试：`39` 项全部通过
 - 主信源采集：在干净目录中成功采集并生成日报
 - 第三方校验：成功导入 `chanmama` 样例并生成校验结果
 - 推送：成功生成 `WeCom` 和 `Email` dry-run 预览
@@ -59,6 +61,7 @@
 - 状态总览：`status` 已能输出最新报告摘要、调度产物、启用信源和推送准备度
 - processed ledger：第二次扫描同一第三方 CSV 时会进入 `Skipped files`，不会再次导入
 - 生产预检：`doctor` 已能区分 fail / warn / pass，并识别 push misconfigured / preview_only / ready
+- run audit：`status` 已能展示最近一次 `run:daily` 的状态、导入文件、跳过文件和告警数量
 
 ## 推荐生产使用方式
 

@@ -234,6 +234,14 @@ program
       console.log(`- ${channel.type}: ${channel.readiness} (${channel.detail})`);
     }
 
+    if (status.lastRun) {
+      console.log(`Last run: ${status.lastRun.runKey}`);
+      console.log(`Run status: ${status.lastRun.status}`);
+      console.log(`Run imported files: ${status.lastRun.importedFiles.join(", ") || "(none)"}`);
+      console.log(`Run skipped files: ${status.lastRun.skippedFiles.join(", ") || "(none)"}`);
+      console.log(`Run warnings: ${status.lastRun.warnings.length}`);
+    }
+
     if (!status.report.available) {
       console.log("Latest report: (none)");
       return;

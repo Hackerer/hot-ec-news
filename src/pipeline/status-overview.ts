@@ -33,6 +33,17 @@ export interface WorkspaceStatus {
     reviewNeeded?: number;
     newEntries?: number;
   };
+  lastRun?: {
+    runKey: string;
+    status: "success" | "failed";
+    startedAt: string;
+    finishedAt: string;
+    importedFiles: string[];
+    skippedFiles: string[];
+    pushOutputs: string[];
+    warnings: string[];
+    errorMessage?: string;
+  };
   sources: {
     primary: string[];
     secondary: string[];
@@ -80,6 +91,7 @@ export function getWorkspaceStatus(
   const database = new HotwordDatabase(paths.dbFile);
   database.init();
   const latest = database.getLatestReport();
+  const latestRun = database.getLatestPipelineRun();
 
   return {
     rootDir,
@@ -97,6 +109,21 @@ export function getWorkspaceStatus(
       : {
           available: false,
         },
+    ...(latestRun
+      ? {
+          lastRun: {
+            runKey: latestRun.runKey,
+            status: latestRun.status,
+            startedAt: latestRun.startedAt,
+            finishedAt: latestRun.finishedAt,
+            importedFiles: latestRun.importedFiles,
+            skippedFiles: latestRun.skippedFiles,
+            pushOutputs: latestRun.pushOutputs,
+            warnings: latestRun.warnings,
+            ...(latestRun.errorMessage ? { errorMessage: latestRun.errorMessage } : {}),
+          },
+        }
+      : {}),
     sources: {
       primary: config.sources
         .filter((source) => source.enabled && source.tier === "primary")

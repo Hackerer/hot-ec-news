@@ -7,6 +7,7 @@ import { describe, expect, test } from "vitest";
 import { runDailyPipeline } from "../src/pipeline/run-daily.js";
 import { HotwordDatabase } from "../src/storage/database.js";
 import { createAppPaths } from "../src/utils/paths.js";
+import { getWorkspaceStatus } from "../src/pipeline/status-overview.js";
 
 describe("runDailyPipeline", () => {
   test("collects live data, imports third-party csv files, and writes a validated report", async () => {
@@ -64,6 +65,10 @@ describe("runDailyPipeline", () => {
     expect(result.skippedFiles).toHaveLength(0);
     expect(result.pushOutputs).toHaveLength(1);
     expect(existsSync(result.reportPath)).toBe(true);
+
+    const status = getWorkspaceStatus(rootDir, { runtimePlatform: "linux" });
+    expect(status.lastRun?.status).toBe("success");
+    expect(status.lastRun?.importedFiles).toContain("chanmama-sample.csv");
   });
 
   test("replaces same-day data instead of duplicating it on repeated runs", async () => {

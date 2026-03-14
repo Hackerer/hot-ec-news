@@ -14,49 +14,88 @@ export async function runDailyPipeline(
   explicitRoot?: string,
   fetchImpl: FetchLike = fetch,
 ): Promise<{ reportPath: string; importedFiles: string[]; skippedFiles: string[]; pushOutputs: string[] }> {
+  const startedAt = new Date().toISOString();
+  const runKey = `run-daily-${startedAt}`;
   const rootDir = resolveRootDir(explicitRoot);
   const config = loadAppConfig(rootDir);
   const paths = createAppPaths(rootDir, config);
   ensureAppDirectories(paths);
   const database = new HotwordDatabase(paths.dbFile);
   database.init();
-
-  const liveResult = await runLiveCollection(rootDir, fetchImpl);
-
   const importedFiles: string[] = [];
   const skippedFiles: string[] = [];
-  for (const fileName of readdirSync(paths.importsDir)) {
-    if (!fileName.endsWith(".csv")) {
-      continue;
+  const pushOutputs: string[] = [];
+  const warnings: string[] = [];
+  let reportPath = "";
+
+  try {
+    const liveResult = await runLiveCollection(rootDir, fetchImpl);
+    warnings.push(...liveResult.warnings);
+
+    for (const fileName of readdirSync(paths.importsDir)) {
+      if (!fileName.endsWith(".csv")) {
+        continue;
+      }
+
+      const provider = inferThirdPartyProvider(fileName);
+      if (!provider) {
+        continue;
+      }
+      if (!isEnabledThirdPartyProvider(provider, config)) {
+        continue;
+      }
+
+      const filePath = path.join(paths.importsDir, fileName);
+      const { fileHash } = buildImportFileFingerprint(filePath);
+      if (database.hasProcessedImport(provider, fileName, fileHash)) {
+        skippedFiles.push(fileName);
+        continue;
+      }
+
+      importThirdPartyFile(provider, filePath, rootDir);
+      importedFiles.push(fileName);
     }
 
-    const provider = inferThirdPartyProvider(fileName);
-    if (!provider) {
-      continue;
-    }
-    if (!isEnabledThirdPartyProvider(provider, config)) {
-      continue;
+    const result = buildValidatedReport(rootDir, warnings);
+    reportPath = result.reportPath;
+    if (config.autoPushOnDaily) {
+      pushOutputs.push(...(await pushConfiguredChannels(config, rootDir)));
     }
 
-    const filePath = path.join(paths.importsDir, fileName);
-    const { fileHash } = buildImportFileFingerprint(filePath);
-    if (database.hasProcessedImport(provider, fileName, fileHash)) {
-      skippedFiles.push(fileName);
-      continue;
-    }
+    database.savePipelineRun({
+      runKey,
+      command: "run:daily",
+      status: "success",
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      warnings,
+      importedFiles,
+      skippedFiles,
+      pushOutputs,
+      reportPath,
+    });
 
-    importThirdPartyFile(provider, filePath, rootDir);
-    importedFiles.push(fileName);
+    return {
+      reportPath,
+      importedFiles,
+      skippedFiles,
+      pushOutputs,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    database.savePipelineRun({
+      runKey,
+      command: "run:daily",
+      status: "failed",
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      warnings,
+      importedFiles,
+      skippedFiles,
+      pushOutputs,
+      ...(reportPath ? { reportPath } : {}),
+      errorMessage: message,
+    });
+    throw error;
   }
-
-  const result = buildValidatedReport(rootDir, liveResult.warnings);
-  const pushOutputs = config.autoPushOnDaily
-    ? await pushConfiguredChannels(config, rootDir)
-    : [];
-  return {
-    reportPath: result.reportPath,
-    importedFiles,
-    skippedFiles,
-    pushOutputs,
-  };
 }
