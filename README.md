@@ -38,6 +38,7 @@ npm test
 - `npx tsx src/cli/index.ts schedule:status --platform macos`: inspect scheduler status
 - `npx tsx src/cli/index.ts schedule:remove --platform macos`: remove the installed scheduler
 - `npm run status`: show the latest generated report
+- `npm run status` now summarizes report, scheduler artifacts, enabled sources, and push readiness
 - `npm run check`: run typecheck and automated tests
 
 ## Configuration
@@ -66,4 +67,5 @@ npm test
 - [v9 report](docs/reports/v9.md)
 - [v10 report](docs/reports/v10.md)
 - [v11 report](docs/reports/v11.md)
+- [v12 report](docs/reports/v12.md)
 - [Final acceptance](docs/acceptance/final-acceptance.md)

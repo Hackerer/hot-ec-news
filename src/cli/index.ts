@@ -10,6 +10,7 @@ import { pushLatestReport, type PushLatestReportOptions } from "../pipeline/push
 import { runDailyPipeline } from "../pipeline/run-daily.js";
 import { runFixtureDemo } from "../pipeline/run-fixture-demo.js";
 import { runLiveCollection } from "../pipeline/run-live-collection.js";
+import { getWorkspaceStatus } from "../pipeline/status-overview.js";
 import { HotwordDatabase } from "../storage/database.js";
 import type { Provider } from "../types/hotword.js";
 import { createAppPaths, ensureAppDirectories, resolveRootDir } from "../utils/paths.js";
@@ -198,24 +199,37 @@ program
 
 program
   .command("status")
-  .description("Show latest report status")
+  .description("Show workspace delivery status")
   .action(() => {
     const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
-    const config = loadAppConfig(rootDir);
-    const paths = createAppPaths(rootDir, config);
-    ensureAppDirectories(paths);
-    const database = new HotwordDatabase(paths.dbFile);
-    database.init();
-    const latest = database.getLatestReport();
+    const status = getWorkspaceStatus(rootDir);
 
-    if (!latest) {
-      console.log("No reports generated yet.");
+    console.log(`Workspace: ${status.rootDir}`);
+    console.log(`Primary sources: ${status.sources.primary.join(", ") || "(none)"}`);
+    console.log(`Secondary sources: ${status.sources.secondary.join(", ") || "(none)"}`);
+    console.log(`Runtime platform: ${status.scheduler.runtimePlatform}`);
+    console.log(`Scheduler artifacts: macOS=${status.scheduler.macosArtifactExists}, Windows=${status.scheduler.windowsArtifactExists}`);
+    if (status.scheduler.runtimeStatus) {
+      console.log(`Runtime scheduler: installed=${status.scheduler.runtimeStatus.installed}, active=${status.scheduler.runtimeStatus.active}`);
+    }
+
+    console.log("Push channels:");
+    for (const channel of status.pushChannels) {
+      console.log(`- ${channel.type}: ${channel.readiness} (${channel.detail})`);
+    }
+
+    if (!status.report.available) {
+      console.log("Latest report: (none)");
       return;
     }
 
-    console.log(`Latest report: ${latest.reportKey}`);
-    console.log(`Generated at: ${latest.generatedAt}`);
-    console.log(`Path: ${latest.path}`);
+    console.log(`Latest report: ${status.report.reportKey}`);
+    console.log(`Generated at: ${status.report.generatedAt}`);
+    console.log(`Path: ${status.report.path}`);
+    console.log(`Aggregated: ${status.report.aggregated}`);
+    console.log(`High confidence: ${status.report.highConfidence}`);
+    console.log(`Review needed: ${status.report.reviewNeeded}`);
+    console.log(`New entries: ${status.report.newEntries}`);
   });
 
 program.parse();
