@@ -73,4 +73,13 @@ describe("renderMarkdownReport", () => {
     expect(markdown).toContain("可信度 高");
     expect(markdown).toContain("原因 单一信源、仅第二信源、新词未完成校验、低可信度");
   });
+
+  test("renders empty platform block when a category has no platform sections", () => {
+    const report = buildDailyReport([], "Asia/Shanghai");
+    const markdown = renderMarkdownReport(report);
+
+    expect(markdown).toContain("## 服饰热词");
+    expect(markdown).toContain("### 平台 Top15");
+    expect(markdown).toContain("当日暂无平台词条");
+  });
 });

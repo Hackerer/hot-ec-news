@@ -52,20 +52,23 @@ export function renderMarkdownReport(report: DailyReport): string {
     lines.push(`## ${section.title}`, "");
     lines.push("### 整体搜索热词 Top15", "");
     if (section.overallItems.length === 0) {
-      lines.push("- 当日暂无词条", "");
-      continue;
-    }
-
-    for (const [index, item] of section.overallItems.entries()) {
-      const trendLabel =
-        item.trend.status === "new"
-          ? "新上榜"
-          : `较上次 ${item.trend.deltaScore >= 0 ? "+" : ""}${item.trend.deltaScore.toFixed(2)}`;
-      lines.push(
-        `${index + 1}. ${item.keyword} | 分数 ${item.score.toFixed(2)} | ${trendLabel} | 可信度 ${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(2)} | 最优排名 ${item.bestRank} | 来源 ${item.providers.join(", ")}`,
-      );
+      lines.push("- 当日暂无词条");
+    } else {
+      for (const [index, item] of section.overallItems.entries()) {
+        const trendLabel =
+          item.trend.status === "new"
+            ? "新上榜"
+            : `较上次 ${item.trend.deltaScore >= 0 ? "+" : ""}${item.trend.deltaScore.toFixed(2)}`;
+        lines.push(
+          `${index + 1}. ${item.keyword} | 分数 ${item.score.toFixed(2)} | ${trendLabel} | 可信度 ${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(2)} | 最优排名 ${item.bestRank} | 来源 ${item.providers.join(", ")}`,
+        );
+      }
     }
     lines.push("");
+
+    if (section.platformSections.length === 0) {
+      lines.push("### 平台 Top15", "", "- 当日暂无平台词条", "");
+    }
 
     for (const platformSection of section.platformSections) {
       lines.push(

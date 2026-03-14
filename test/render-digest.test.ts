@@ -113,6 +113,17 @@ describe("renderPushDigestMarkdown", () => {
     expect(html).toContain("整体搜索热词 Top15");
     expect(html).toContain("防晒衣女");
   });
+
+  test("renders empty platform blocks for empty categories", () => {
+    const report = buildDailyReport([], "Asia/Shanghai");
+
+    const digest = renderPushDigestMarkdown("validated-2026-03-14", report);
+    const html = renderEmailHtml("validated-2026-03-14", report);
+
+    expect(digest).toContain("### 平台 Top15");
+    expect(digest).toContain("当前没有平台词");
+    expect(html).toContain("<h3>平台 Top15</h3><p>当前没有平台词条</p>");
+  });
 });
 
 describe("renderEmailHtml", () => {

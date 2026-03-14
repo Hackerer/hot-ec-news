@@ -80,7 +80,12 @@ export function renderPushDigestMarkdown(reportKey: string, report: DailyReport)
       }
     }
 
-    for (const platformSection of getPlatformSections(section)) {
+    const platformSections = getPlatformSections(section);
+    if (platformSections.length === 0) {
+      lines.push("", "### 平台 Top15", "- 当前没有平台词");
+    }
+
+    for (const platformSection of platformSections) {
       lines.push(
         "",
         `### ${platformSection.title} Top15（${sourceTierLabels[platformSection.sourceTier]}，共 ${platformSection.totalItems} 词）`,
@@ -140,12 +145,13 @@ export function renderEmailHtml(reportKey: string, report: DailyReport): string 
     ${renderHtmlList(platformSection.items, "当前没有平台词条")}`,
         )
         .join("");
+      const platformContent = platformBlocks || "<h3>平台 Top15</h3><p>当前没有平台词条</p>";
 
       return `<section>
     <h2>${escapeHtml(section.title)}</h2>
     <h3>整体搜索热词 Top15</h3>
     ${renderHtmlList(getOverallItems(section), "当前没有类目词条")}
-    ${platformBlocks}
+    ${platformContent}
   </section>`;
     })
     .join("");
