@@ -43,7 +43,7 @@ export function importThirdPartyFile(
   };
 }
 
-export function buildValidatedReport(explicitRoot?: string): {
+export function buildValidatedReport(explicitRoot?: string, warnings?: string[]): {
   reportPath: string;
   reportKey: string;
   recordCount: number;
@@ -62,7 +62,7 @@ export function buildValidatedReport(explicitRoot?: string): {
   }
 
   const records = database.listHotwordsByDate(latestDate);
-  const report = buildDailyReport(records, config.timezone);
+  const report = buildDailyReport(records, config.timezone, warnings ?? []);
   const reportKey = `validated-${latestDate}`;
   const reportPath = path.join(paths.reportDir, `${reportKey}.md`);
 

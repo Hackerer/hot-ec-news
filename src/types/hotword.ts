@@ -61,6 +61,7 @@ export interface DailyReport {
   timezone: string;
   sections: CategorySection[];
   validationHighlights: AggregatedHotword[];
+  warnings: string[];
   totals: {
     collected: number;
     aggregated: number;

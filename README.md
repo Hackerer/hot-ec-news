@@ -42,3 +42,5 @@ npm test
 - [v2 report](docs/reports/v2.md)
 - [v3 report](docs/reports/v3.md)
 - [v4 report](docs/reports/v4.md)
+- [v5 report](docs/reports/v5.md)
+- [Final acceptance](docs/acceptance/final-acceptance.md)

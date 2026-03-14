@@ -106,6 +106,7 @@ export function aggregateHotwords(records: CollectedHotword[]): AggregatedHotwor
 export function buildDailyReport(
   records: CollectedHotword[],
   timezone: string,
+  warnings: string[] = [],
 ): DailyReport {
   const aggregated = aggregateHotwords(records);
   const categories: DailyReport["sections"] = (["apparel", "shoes", "jewelry"] as const).map(
@@ -126,6 +127,7 @@ export function buildDailyReport(
     timezone,
     sections: categories,
     validationHighlights,
+    warnings,
     totals: {
       collected: records.length,
       aggregated: aggregated.length,

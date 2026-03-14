@@ -45,5 +45,15 @@ export function renderMarkdownReport(report: DailyReport): string {
     lines.push("");
   }
 
+  lines.push("## 备注与异常说明", "");
+  if (report.warnings.length === 0) {
+    lines.push("- 当次运行无异常", "");
+  } else {
+    for (const warning of report.warnings) {
+      lines.push(`- ${warning}`);
+    }
+    lines.push("");
+  }
+
   return `${lines.join("\n").trim()}\n`;
 }

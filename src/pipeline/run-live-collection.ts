@@ -9,14 +9,17 @@ import { collectTaobaoSuggestions } from "../collectors/taobao-suggestions.js";
 import type { FetchLike } from "../collectors/types.js";
 import { renderMarkdownReport } from "../reports/render-markdown.js";
 import { HotwordDatabase } from "../storage/database.js";
+import { writeErrorSnapshot } from "../utils/error-snapshots.js";
 import { createAppPaths, ensureAppDirectories, resolveRootDir } from "../utils/paths.js";
 import { writeRawSnapshot } from "../utils/raw-snapshots.js";
+import { withRetries } from "../utils/retry.js";
 
 export interface LiveCollectionResult {
   reportPath: string;
   reportKey: string;
   collected: number;
   seeds: string[];
+  warnings: string[];
 }
 
 export async function runLiveCollection(
@@ -33,21 +36,49 @@ export async function runLiveCollection(
   const database = new HotwordDatabase(paths.dbFile);
   database.init();
 
+  const enabledProviders = new Set(
+    (process.env.HOT_EC_NEWS_ENABLED_PROVIDERS ?? "taobao,jd")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
   const seeds = allSeeds();
   const collected = [];
+  const warnings: string[] = [];
 
   for (const seed of seeds) {
-    const taobao = await collectTaobaoSuggestions(seed, fetchImpl, capturedAt);
-    writeRawSnapshot(rootDir, taobao.provider, seed, capturedAt, taobao.rawPayload);
-    collected.push(...taobao.records);
+    if (enabledProviders.has("taobao")) {
+      try {
+        const taobao = await withRetries(
+          () => collectTaobaoSuggestions(seed, fetchImpl, capturedAt),
+          2,
+        );
+        writeRawSnapshot(rootDir, taobao.provider, seed, capturedAt, taobao.rawPayload);
+        collected.push(...taobao.records);
+      } catch (error) {
+        const snapshotPath = writeErrorSnapshot(rootDir, "taobao", seed, capturedAt, error);
+        warnings.push(`淘宝采集失败：${seed}，错误快照 ${snapshotPath}`);
+      }
+    }
 
-    const jd = await collectJdSuggestions(seed, fetchImpl, capturedAt);
-    writeRawSnapshot(rootDir, jd.provider, seed, capturedAt, jd.rawPayload);
-    collected.push(...jd.records);
+    if (enabledProviders.has("jd")) {
+      try {
+        const jd = await withRetries(() => collectJdSuggestions(seed, fetchImpl, capturedAt), 2);
+        writeRawSnapshot(rootDir, jd.provider, seed, capturedAt, jd.rawPayload);
+        collected.push(...jd.records);
+      } catch (error) {
+        const snapshotPath = writeErrorSnapshot(rootDir, "jd", seed, capturedAt, error);
+        warnings.push(`京东采集失败：${seed}，错误快照 ${snapshotPath}`);
+      }
+    }
+  }
+
+  if (collected.length === 0) {
+    throw new Error("All enabled live collectors failed.");
   }
 
   database.insertHotwords(collected);
-  const report = buildDailyReport(collected, config.timezone);
+  const report = buildDailyReport(collected, config.timezone, warnings);
   const markdown = renderMarkdownReport(report);
   const reportKey = `live-${capturedAt.slice(0, 10)}`;
   const reportPath = path.join(paths.reportDir, `${reportKey}.md`);
@@ -60,5 +91,6 @@ export async function runLiveCollection(
     reportKey,
     collected: collected.length,
     seeds,
+    warnings,
   };
 }

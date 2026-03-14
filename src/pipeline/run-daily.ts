@@ -23,7 +23,7 @@ export async function runDailyPipeline(
   const paths = createAppPaths(rootDir);
   ensureAppDirectories(paths);
 
-  await runLiveCollection(rootDir, fetchImpl);
+  const liveResult = await runLiveCollection(rootDir, fetchImpl);
 
   const importedFiles: string[] = [];
   for (const fileName of readdirSync(paths.importsDir)) {
@@ -40,7 +40,7 @@ export async function runDailyPipeline(
     importedFiles.push(fileName);
   }
 
-  const result = buildValidatedReport(rootDir);
+  const result = buildValidatedReport(rootDir, liveResult.warnings);
   return {
     reportPath: result.reportPath,
     importedFiles,
