@@ -44,6 +44,15 @@ export interface WorkspaceStatus {
     warnings: string[];
     errorMessage?: string;
   };
+  recentRuns: Array<{
+    runKey: string;
+    status: "success" | "failed";
+    startedAt: string;
+    importedFiles: string[];
+    skippedFiles: string[];
+    warnings: string[];
+    errorMessage?: string;
+  }>;
   sources: {
     primary: string[];
     secondary: string[];
@@ -92,6 +101,7 @@ export function getWorkspaceStatus(
   database.init();
   const latest = database.getLatestReport();
   const latestRun = database.getLatestPipelineRun();
+  const recentRuns = database.listPipelineRuns(5);
 
   return {
     rootDir,
@@ -124,6 +134,15 @@ export function getWorkspaceStatus(
           },
         }
       : {}),
+    recentRuns: recentRuns.map((run) => ({
+      runKey: run.runKey,
+      status: run.status,
+      startedAt: run.startedAt,
+      importedFiles: run.importedFiles,
+      skippedFiles: run.skippedFiles,
+      warnings: run.warnings,
+      ...(run.errorMessage ? { errorMessage: run.errorMessage } : {}),
+    })),
     sources: {
       primary: config.sources
         .filter((source) => source.enabled && source.tier === "primary")

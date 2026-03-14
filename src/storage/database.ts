@@ -25,6 +25,36 @@ export interface PipelineRunRecord {
   errorMessage?: string;
 }
 
+interface PipelineRunRow extends Record<string, unknown> {
+  runKey: unknown;
+  command: unknown;
+  status: unknown;
+  startedAt: unknown;
+  finishedAt: unknown;
+  warningsJson: unknown;
+  importedFilesJson: unknown;
+  skippedFilesJson: unknown;
+  pushOutputsJson: unknown;
+  reportPath?: unknown;
+  errorMessage?: unknown;
+}
+
+function mapPipelineRunRow(row: PipelineRunRow): PipelineRunRecord {
+  return {
+    runKey: String(row.runKey),
+    command: String(row.command),
+    status: String(row.status) as PipelineRunRecord["status"],
+    startedAt: String(row.startedAt),
+    finishedAt: String(row.finishedAt),
+    warnings: JSON.parse(String(row.warningsJson)) as string[],
+    importedFiles: JSON.parse(String(row.importedFilesJson)) as string[],
+    skippedFiles: JSON.parse(String(row.skippedFilesJson)) as string[],
+    pushOutputs: JSON.parse(String(row.pushOutputsJson)) as string[],
+    ...(row.reportPath ? { reportPath: String(row.reportPath) } : {}),
+    ...(row.errorMessage ? { errorMessage: String(row.errorMessage) } : {}),
+  };
+}
+
 export class HotwordDatabase {
   private readonly db: DatabaseSync;
 
@@ -466,24 +496,36 @@ export class HotwordDatabase {
         ORDER BY started_at DESC
         LIMIT 1
       `)
-      .get() as Record<string, unknown> | undefined;
+      .get() as PipelineRunRow | undefined;
 
     if (!row) {
       return null;
     }
 
-    return {
-      runKey: String(row.runKey),
-      command: String(row.command),
-      status: String(row.status) as PipelineRunRecord["status"],
-      startedAt: String(row.startedAt),
-      finishedAt: String(row.finishedAt),
-      warnings: JSON.parse(String(row.warningsJson)) as string[],
-      importedFiles: JSON.parse(String(row.importedFilesJson)) as string[],
-      skippedFiles: JSON.parse(String(row.skippedFilesJson)) as string[],
-      pushOutputs: JSON.parse(String(row.pushOutputsJson)) as string[],
-      ...(row.reportPath ? { reportPath: String(row.reportPath) } : {}),
-      ...(row.errorMessage ? { errorMessage: String(row.errorMessage) } : {}),
-    };
+    return mapPipelineRunRow(row);
+  }
+
+  listPipelineRuns(limit = 10): PipelineRunRecord[] {
+    const rows = this.db
+      .prepare(`
+        SELECT
+          run_key AS runKey,
+          command,
+          status,
+          started_at AS startedAt,
+          finished_at AS finishedAt,
+          warnings_json AS warningsJson,
+          imported_files_json AS importedFilesJson,
+          skipped_files_json AS skippedFilesJson,
+          push_outputs_json AS pushOutputsJson,
+          report_path AS reportPath,
+          error_message AS errorMessage
+        FROM pipeline_runs
+        ORDER BY started_at DESC
+        LIMIT ?
+      `)
+      .all(limit) as PipelineRunRow[];
+
+    return rows.map((row) => mapPipelineRunRow(row));
   }
 }

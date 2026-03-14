@@ -214,6 +214,38 @@ program
   });
 
 program
+  .command("runs")
+  .description("Show the most recent pipeline runs")
+  .option("--limit <limit>", "How many runs to show", "5")
+  .action((options: { limit: string }) => {
+    const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
+    const config = loadAppConfig(rootDir);
+    const paths = createAppPaths(rootDir, config);
+    ensureAppDirectories(paths);
+    const database = new HotwordDatabase(paths.dbFile);
+    database.init();
+    const runs = database.listPipelineRuns(Number(options.limit) || 5);
+
+    console.log(`Workspace: ${rootDir}`);
+    console.log(`Runs: ${runs.length}`);
+    if (runs.length === 0) {
+      console.log("Latest runs: (none)");
+      return;
+    }
+
+    for (const run of runs) {
+      console.log(`${run.startedAt} ${run.status.toUpperCase()} ${run.command}`);
+      console.log(`  key=${run.runKey}`);
+      console.log(`  imported=${run.importedFiles.join(", ") || "(none)"}`);
+      console.log(`  skipped=${run.skippedFiles.join(", ") || "(none)"}`);
+      console.log(`  warnings=${run.warnings.length}`);
+      if (run.errorMessage) {
+        console.log(`  error=${run.errorMessage}`);
+      }
+    }
+  });
+
+program
   .command("status")
   .description("Show workspace delivery status")
   .action(() => {
@@ -240,6 +272,21 @@ program
       console.log(`Run imported files: ${status.lastRun.importedFiles.join(", ") || "(none)"}`);
       console.log(`Run skipped files: ${status.lastRun.skippedFiles.join(", ") || "(none)"}`);
       console.log(`Run warnings: ${status.lastRun.warnings.length}`);
+      if (status.lastRun.errorMessage) {
+        console.log(`Run error: ${status.lastRun.errorMessage}`);
+      }
+    }
+
+    if (status.recentRuns.length > 0) {
+      console.log("Recent runs:");
+      for (const run of status.recentRuns.slice(0, 3)) {
+        console.log(
+          `- ${run.startedAt} ${run.status} imported=${run.importedFiles.length} skipped=${run.skippedFiles.length} warnings=${run.warnings.length}`,
+        );
+        if (run.errorMessage) {
+          console.log(`  error=${run.errorMessage}`);
+        }
+      }
     }
 
     if (!status.report.available) {
