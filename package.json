@@ -1,0 +1,46 @@
+{
+  "name": "hot-ec-news",
+  "version": "0.1.0",
+  "description": "Cross-platform ecommerce hot keyword pipeline for apparel, shoes, and jewelry.",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "tsx src/cli/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test",
+    "demo:fixtures": "tsx src/cli/index.ts demo:fixtures",
+    "init": "tsx src/cli/index.ts init",
+    "status": "tsx src/cli/index.ts status"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hackerer/hot-ec-news.git"
+  },
+  "keywords": [],
+  "author": "Hackerer",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Hackerer/hot-ec-news/issues"
+  },
+  "homepage": "https://github.com/Hackerer/hot-ec-news#readme",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "bin": {
+    "hot-ec-news": "./dist/cli/index.js"
+  },
+  "dependencies": {
+    "commander": "^14.0.1",
+    "nodemailer": "^7.0.10",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
