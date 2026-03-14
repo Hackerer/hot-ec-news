@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 
-import type { CollectedHotword, DailyReport } from "../types/hotword.js";
+import type { CollectedHotword, DailyReport, SourceKind } from "../types/hotword.js";
 
 export interface ProcessedImportRecord {
   provider: CollectedHotword["provider"];
@@ -9,6 +9,11 @@ export interface ProcessedImportRecord {
   fileSize: number;
   processedAt: string;
   archivePath: string;
+}
+
+interface HotwordListFilters {
+  sourceKind?: SourceKind;
+  excludeSourceKinds?: SourceKind[];
 }
 
 export interface PipelineRunRecord {
@@ -243,7 +248,22 @@ export class HotwordDatabase {
     });
   }
 
-  listHotwordsByDate(datePrefix: string): CollectedHotword[] {
+  listHotwordsByDate(datePrefix: string, filters: HotwordListFilters = {}): CollectedHotword[] {
+    const clauses = ["substr(captured_at, 1, 10) = ?"];
+    const values: Array<string> = [datePrefix];
+
+    if (filters.sourceKind) {
+      clauses.push("source_kind = ?");
+      values.push(filters.sourceKind);
+    }
+
+    if (filters.excludeSourceKinds && filters.excludeSourceKinds.length > 0) {
+      clauses.push(
+        `source_kind NOT IN (${filters.excludeSourceKinds.map(() => "?").join(", ")})`,
+      );
+      values.push(...filters.excludeSourceKinds);
+    }
+
     const rows = this.db
       .prepare(`
         SELECT
@@ -260,10 +280,10 @@ export class HotwordDatabase {
           query_seed AS querySeed,
           metadata_json AS metadataJson
         FROM collected_hotwords
-        WHERE substr(captured_at, 1, 10) = ?
+        WHERE ${clauses.join(" AND ")}
         ORDER BY captured_at DESC, score_normalized DESC
       `)
-      .all(datePrefix) as Array<Record<string, unknown>>;
+      .all(...values) as Array<Record<string, unknown>>;
 
     return rows.map((row) => {
       const record: CollectedHotword = {
@@ -294,15 +314,32 @@ export class HotwordDatabase {
     });
   }
 
-  getLatestCollectionDate(): string | null {
+  getLatestCollectionDate(filters: HotwordListFilters = {}): string | null {
+    const clauses: string[] = [];
+    const values: string[] = [];
+
+    if (filters.sourceKind) {
+      clauses.push("source_kind = ?");
+      values.push(filters.sourceKind);
+    }
+
+    if (filters.excludeSourceKinds && filters.excludeSourceKinds.length > 0) {
+      clauses.push(
+        `source_kind NOT IN (${filters.excludeSourceKinds.map(() => "?").join(", ")})`,
+      );
+      values.push(...filters.excludeSourceKinds);
+    }
+
+    const whereClause = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
     const row = this.db
       .prepare(`
         SELECT captured_at AS capturedAt
         FROM collected_hotwords
+        ${whereClause}
         ORDER BY captured_at DESC
         LIMIT 1
       `)
-      .get() as Record<string, unknown> | undefined;
+      .get(...values) as Record<string, unknown> | undefined;
 
     if (!row?.capturedAt) {
       return null;
@@ -311,17 +348,32 @@ export class HotwordDatabase {
     return String(row.capturedAt).slice(0, 10);
   }
 
-  getPreviousCollectionDate(beforeDate: string): string | null {
+  getPreviousCollectionDate(beforeDate: string, filters: HotwordListFilters = {}): string | null {
+    const clauses = ["substr(captured_at, 1, 10) < ?"];
+    const values: string[] = [beforeDate];
+
+    if (filters.sourceKind) {
+      clauses.push("source_kind = ?");
+      values.push(filters.sourceKind);
+    }
+
+    if (filters.excludeSourceKinds && filters.excludeSourceKinds.length > 0) {
+      clauses.push(
+        `source_kind NOT IN (${filters.excludeSourceKinds.map(() => "?").join(", ")})`,
+      );
+      values.push(...filters.excludeSourceKinds);
+    }
+
     const row = this.db
       .prepare(`
         SELECT substr(captured_at, 1, 10) AS datePrefix
         FROM collected_hotwords
-        WHERE substr(captured_at, 1, 10) < ?
+        WHERE ${clauses.join(" AND ")}
         GROUP BY substr(captured_at, 1, 10)
         ORDER BY datePrefix DESC
         LIMIT 1
       `)
-      .get(beforeDate) as Record<string, unknown> | undefined;
+      .get(...values) as Record<string, unknown> | undefined;
 
     if (!row?.datePrefix) {
       return null;
@@ -354,7 +406,14 @@ export class HotwordDatabase {
       .prepare(`
         SELECT report_key AS reportKey, path, generated_at AS generatedAt, summary_json AS summaryJson
         FROM reports
-        ORDER BY generated_at DESC
+        ORDER BY
+          CASE
+            WHEN report_key LIKE 'validated-%' THEN 1
+            WHEN report_key LIKE 'live-%' THEN 2
+            WHEN report_key LIKE 'fixture-%' THEN 3
+            ELSE 4
+          END,
+          generated_at DESC
         LIMIT 1
       `)
       .get() as Record<string, string> | undefined;

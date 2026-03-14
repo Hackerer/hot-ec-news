@@ -17,7 +17,7 @@ export function getFixtureHotwords(capturedAt = "2026-03-14T09:00:00+08:00"): Co
   return fixtureRows.map(([provider, keyword, rank, score, tier]) => ({
     provider: provider as CollectedHotword["provider"],
     sourceTier: tier as CollectedHotword["sourceTier"],
-    sourceKind: provider === "chanmama" ? "third_party" : "fixture",
+    sourceKind: "fixture",
     keyword,
     normalizedKeyword: normalizeKeyword(keyword),
     category: categorizeKeyword(keyword),

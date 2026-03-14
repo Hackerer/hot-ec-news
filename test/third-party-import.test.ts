@@ -6,6 +6,7 @@ import { describe, expect, test } from "vitest";
 
 import { importThirdPartyCsv } from "../src/importers/third-party-csv.js";
 import { buildValidatedReport, importThirdPartyFile } from "../src/pipeline/import-third-party.js";
+import { runFixtureDemo } from "../src/pipeline/run-fixture-demo.js";
 import { runLiveCollection } from "../src/pipeline/run-live-collection.js";
 
 describe("importThirdPartyCsv", () => {
@@ -66,5 +67,41 @@ describe("validated reporting", () => {
     expect(markdown).toContain("## 第三方校验结果");
     expect(markdown).toContain("连衣裙女夏");
     expect(markdown).toContain("chanmama");
+  });
+
+  test("ignores fixture records when building a validated report", async () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), "hot-ec-news-validated-"));
+    const fetchStub: typeof fetch = async (input) => {
+      const url = String(input);
+      if (url.includes("suggest.taobao.com")) {
+        return new Response(
+          JSON.stringify({
+            result: [
+              ["半身裙女", "22000.1"],
+              ["凉鞋女", "21000.1"],
+              ["黄金耳钉", "20000.1"],
+            ],
+          }),
+        );
+      }
+
+      return new Response(
+        JSON.stringify([
+          { keyword: "半身裙女" },
+          { keyword: "凉鞋女" },
+          { keyword: "黄金耳钉" },
+        ]),
+      );
+    };
+
+    await runLiveCollection(rootDir, fetchStub, "2026-03-14T09:00:00+08:00");
+    runFixtureDemo(rootDir);
+
+    const result = buildValidatedReport(rootDir);
+    const markdown = readFileSync(result.reportPath, "utf8");
+
+    expect(markdown).toContain("半身裙女");
+    expect(markdown).toContain("凉鞋女");
+    expect(markdown).not.toContain("连衣裙女夏");
   });
 });

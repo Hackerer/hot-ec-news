@@ -88,14 +88,24 @@ export function buildValidatedReport(explicitRoot?: string, warnings?: string[])
   const database = new HotwordDatabase(paths.dbFile);
   database.init();
 
-  const latestDate = database.getLatestCollectionDate();
+  const latestDate = database.getLatestCollectionDate({
+    excludeSourceKinds: ["fixture"],
+  });
   if (!latestDate) {
     throw new Error("No collected hotwords available to build a validated report.");
   }
 
-  const records = database.listHotwordsByDate(latestDate);
-  const previousDate = database.getPreviousCollectionDate(latestDate);
-  const previousRecords = previousDate ? database.listHotwordsByDate(previousDate) : [];
+  const records = database.listHotwordsByDate(latestDate, {
+    excludeSourceKinds: ["fixture"],
+  });
+  const previousDate = database.getPreviousCollectionDate(latestDate, {
+    excludeSourceKinds: ["fixture"],
+  });
+  const previousRecords = previousDate
+    ? database.listHotwordsByDate(previousDate, {
+        excludeSourceKinds: ["fixture"],
+      })
+    : [];
   const report = buildDailyReport(
     records,
     config.timezone,

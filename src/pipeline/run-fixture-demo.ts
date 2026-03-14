@@ -25,7 +25,9 @@ export function runFixtureDemo(explicitRoot?: string): FixtureDemoResult {
   database.init();
 
   const records = getFixtureHotwords();
-  database.deleteHotwordsForDate(records[0]?.capturedAt.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+  database.deleteHotwordsForDate(records[0]?.capturedAt.slice(0, 10) ?? new Date().toISOString().slice(0, 10), {
+    sourceKind: "fixture",
+  });
   database.insertHotwords(records);
 
   const report = buildDailyReport(records, config.timezone, [], [], config.categories);
