@@ -73,7 +73,7 @@ describe("renderPushDigestMarkdown", () => {
 });
 
 describe("renderEmailHtml", () => {
-  test("renders html summary cards and review table", () => {
+  test("renders category-first html sections before review table", () => {
     const report = buildDailyReport(
       [
         makeRecord({
@@ -83,6 +83,13 @@ describe("renderEmailHtml", () => {
           scoreNormalized: 100,
           capturedAt: "2026-03-14T09:00:00+08:00",
         }),
+        makeRecord({
+          keyword: "防晒衣女",
+          provider: "chanmama",
+          sourceTier: "secondary",
+          scoreNormalized: 80,
+          capturedAt: "2026-03-14T09:00:00+08:00",
+        }),
       ],
       "Asia/Shanghai",
     );
@@ -90,6 +97,9 @@ describe("renderEmailHtml", () => {
     const html = renderEmailHtml("validated-2026-03-14", report);
 
     expect(html).toContain("<!doctype html>");
+    expect(html).toContain("整体搜索热词 Top15");
+    expect(html).toContain("淘宝/天猫 Top15（第一信源");
+    expect(html).toContain("蝉妈妈 Top15（第二信源");
     expect(html).toContain("高可信热词");
     expect(html).toContain("待人工复核");
     expect(html).toContain("聚合词条");

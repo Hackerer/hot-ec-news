@@ -12,6 +12,11 @@ const validationStatusLabels = {
   secondary_only: "仅第二信源",
 } as const;
 
+const sourceTierLabels = {
+  primary: "第一信源",
+  secondary: "第二信源",
+} as const;
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -101,6 +106,24 @@ function renderHtmlList(items: AggregatedHotword[], emptyText: string, includeRe
 }
 
 export function renderEmailHtml(reportKey: string, report: DailyReport): string {
+  const categorySections = report.sections
+    .map((section) => {
+      const platformBlocks = section.platformSections
+        .map(
+          (platformSection) => `<h3>${escapeHtml(platformSection.title)} Top15（${sourceTierLabels[platformSection.sourceTier]}，共 ${platformSection.totalItems} 词）</h3>
+    ${renderHtmlList(platformSection.items, "当前没有平台词条")}`,
+        )
+        .join("");
+
+      return `<section>
+    <h2>${escapeHtml(section.title)}</h2>
+    <h3>整体搜索热词 Top15</h3>
+    ${renderHtmlList(section.overallItems, "当前没有类目词条")}
+    ${platformBlocks}
+  </section>`;
+    })
+    .join("");
+
   return `<!doctype html>
 <html lang="zh-CN">
   <head>
@@ -127,6 +150,7 @@ export function renderEmailHtml(reportKey: string, report: DailyReport): string 
       <div class="card"><div>待复核</div><div class="value">${report.totals.reviewNeeded}</div></div>
       <div class="card"><div>新增词</div><div class="value">${report.totals.newEntries}</div></div>
     </div>
+    ${categorySections}
     <h2>高可信热词</h2>
     ${renderHtmlList(report.confidenceHighlights, "当前没有高可信词")}
     <h2>新增爆发词</h2>
