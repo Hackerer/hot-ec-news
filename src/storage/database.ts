@@ -205,6 +205,25 @@ export class HotwordDatabase {
     return String(row.capturedAt).slice(0, 10);
   }
 
+  getPreviousCollectionDate(beforeDate: string): string | null {
+    const row = this.db
+      .prepare(`
+        SELECT substr(captured_at, 1, 10) AS datePrefix
+        FROM collected_hotwords
+        WHERE substr(captured_at, 1, 10) < ?
+        GROUP BY substr(captured_at, 1, 10)
+        ORDER BY datePrefix DESC
+        LIMIT 1
+      `)
+      .get(beforeDate) as Record<string, unknown> | undefined;
+
+    if (!row?.datePrefix) {
+      return null;
+    }
+
+    return String(row.datePrefix);
+  }
+
   saveReport(reportKey: string, format: string, outputPath: string, report: DailyReport): void {
     this.db
       .prepare(`

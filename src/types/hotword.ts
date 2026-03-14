@@ -30,6 +30,7 @@ export const providerValues = [
 ] as const satisfies readonly Provider[];
 
 export type ValidationStatus = "validated" | "primary_only" | "secondary_only";
+export type TrendStatus = "new" | "up" | "down" | "steady";
 
 export interface CollectedHotword {
   provider: Provider;
@@ -59,6 +60,11 @@ export interface AggregatedHotword {
   secondaryProviders: Provider[];
   confidence: number;
   validationStatus: ValidationStatus;
+  trend: {
+    status: TrendStatus;
+    previousScore: number | null;
+    deltaScore: number;
+  };
 }
 
 export interface CategorySection {
@@ -72,6 +78,8 @@ export interface DailyReport {
   timezone: string;
   sections: CategorySection[];
   validationHighlights: AggregatedHotword[];
+  newHighlights: AggregatedHotword[];
+  repeatedHighlights: AggregatedHotword[];
   warnings: string[];
   totals: {
     collected: number;
@@ -80,5 +88,7 @@ export interface DailyReport {
     validated: number;
     primaryOnly: number;
     secondaryOnly: number;
+    newEntries: number;
+    repeatedEntries: number;
   };
 }

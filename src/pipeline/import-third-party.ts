@@ -62,7 +62,9 @@ export function buildValidatedReport(explicitRoot?: string, warnings?: string[])
   }
 
   const records = database.listHotwordsByDate(latestDate);
-  const report = buildDailyReport(records, config.timezone, warnings ?? []);
+  const previousDate = database.getPreviousCollectionDate(latestDate);
+  const previousRecords = previousDate ? database.listHotwordsByDate(previousDate) : [];
+  const report = buildDailyReport(records, config.timezone, warnings ?? [], previousRecords);
   const reportKey = `validated-${latestDate}`;
   const reportPath = path.join(paths.reportDir, `${reportKey}.md`);
 

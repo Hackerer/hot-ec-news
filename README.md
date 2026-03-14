@@ -8,6 +8,7 @@ Cross-platform ecommerce hot keyword pipeline focused on apparel, shoes, and jew
 - Secondary validation sources: third-party platforms such as Chanmama and Feigua
 - Runtime targets: macOS and Windows
 - Output: daily markdown report, later webhook/email push
+- Report now includes trend comparison, new entries, repeated entries, and validation highlights
 
 ## Quick Start
 
@@ -55,4 +56,5 @@ npm test
 - [v4 report](docs/reports/v4.md)
 - [v5 report](docs/reports/v5.md)
 - [v6 report](docs/reports/v6.md)
+- [v7 report](docs/reports/v7.md)
 - [Final acceptance](docs/acceptance/final-acceptance.md)
