@@ -62,11 +62,17 @@ describe("category section structure", () => {
     expect(apparel?.overallItems).toHaveLength(15);
     expect(apparel?.items).toEqual(apparel?.overallItems);
     expect(apparel?.overallItems[0]?.keyword).toBe("服饰词1");
-    expect(apparel?.platformSections.map((section) => section.provider)).toEqual([
-      "taobao",
-      "jd",
-      "chanmama",
-    ]);
-    expect(apparel?.platformSections[0]?.title).toBe("淘宝/天猫");
+    expect(apparel?.platformSections.map((section) => section.provider)).toEqual(["jd", "taobao", "chanmama"]);
+    expect(apparel?.platformSections[0]).toMatchObject({
+      provider: "jd",
+      title: "京东",
+      sourceTier: "primary",
+      totalItems: 9,
+    });
+    expect(apparel?.platformSections[2]).toMatchObject({
+      provider: "chanmama",
+      sourceTier: "secondary",
+      totalItems: 1,
+    });
   });
 });

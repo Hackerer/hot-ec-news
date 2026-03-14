@@ -98,6 +98,8 @@ export interface CategorySection {
   platformSections: Array<{
     provider: Provider;
     title: string;
+    sourceTier: SourceTier;
+    totalItems: number;
     items: AggregatedHotword[];
   }>;
 }

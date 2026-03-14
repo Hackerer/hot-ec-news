@@ -21,6 +21,7 @@
 15. `v15` pipeline run audit，记录最近一次 `run:daily` 的输入输出与结果
 16. `v16` recent run history，直接查看最近几次 pipeline 运行结果
 17. `v17` 报告模型升级，增加按品类的整体 Top15 与平台榜结构
+18. `v18` 平台榜元信息升级，增加平台信源类型、总词数和稳定排序
 
 ## 验收项
 
@@ -44,6 +45,7 @@
 - 可回看最近一次 `run:daily` 的导入、跳过、告警和结果
 - 可直接查看最近几次 pipeline 运行结果，判断是否连续稳定
 - 报告数据模型可承载“每个品类先整体 Top15，再分平台 Top15”
+- 平台榜具备可渲染所需的元信息和稳定顺序
 
 ## 实际结果
 
@@ -68,6 +70,7 @@
 - run audit：`status` 已能展示最近一次 `run:daily` 的状态、导入文件、跳过文件和告警数量
 - recent history：`runs` 和 `status` 已能展示最近几次 pipeline 结果，并暴露失败错误信息
 - category structure：报告数据模型已为每个类目产出 `overallItems` 和 `platformSections`
+- platform meta：平台榜现在会区分第一/第二信源，并记录该平台在该类目下的词条数
 
 ## 推荐生产使用方式
 

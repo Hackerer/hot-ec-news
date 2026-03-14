@@ -76,4 +76,5 @@ npm test
 - [v15 report](docs/reports/v15.md)
 - [v16 report](docs/reports/v16.md)
 - [v17 report](docs/reports/v17.md)
+- [v18 report](docs/reports/v18.md)
 - [Final acceptance](docs/acceptance/final-acceptance.md)

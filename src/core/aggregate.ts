@@ -6,6 +6,7 @@ import type {
   DailyReport,
   Provider,
   ReviewFlag,
+  SourceTier,
   TrendStatus,
   ValidationStatus,
 } from "../types/hotword.js";
@@ -253,24 +254,50 @@ export function buildDailyReport(
       const overallItems = aggregated.filter((item) => item.category === category).slice(0, categoryTopLimit);
       const platformSections = providerValues
         .map((provider) => {
-          const providerItems = aggregateHotwords(
-            filteredRecords.filter((record) => record.category === category && record.provider === provider),
-            filteredPreviousRecords.filter(
-              (record) => record.category === category && record.provider === provider,
-            ),
-          ).slice(0, categoryTopLimit);
+          const currentProviderRecords = filteredRecords.filter(
+            (record) => record.category === category && record.provider === provider,
+          );
+          const previousProviderRecords = filteredPreviousRecords.filter(
+            (record) => record.category === category && record.provider === provider,
+          );
+          const aggregatedProviderItems = aggregateHotwords(
+            currentProviderRecords,
+            previousProviderRecords,
+          );
+          const providerItems = aggregatedProviderItems.slice(0, categoryTopLimit);
 
           if (providerItems.length === 0) {
             return null;
           }
 
+          const sourceTier: SourceTier = currentProviderRecords.some(
+            (record) => record.sourceTier === "primary",
+          )
+            ? "primary"
+            : "secondary";
+
           return {
             provider,
             title: providerLabels[provider],
+            sourceTier,
+            totalItems: aggregatedProviderItems.length,
             items: providerItems,
           };
         })
-        .filter((section): section is NonNullable<typeof section> => section !== null);
+        .filter((section): section is NonNullable<typeof section> => section !== null)
+        .sort((left, right) => {
+          if (left.sourceTier !== right.sourceTier) {
+            return left.sourceTier === "primary" ? -1 : 1;
+          }
+
+          const leftTopScore = left.items[0]?.score ?? 0;
+          const rightTopScore = right.items[0]?.score ?? 0;
+          if (leftTopScore !== rightTopScore) {
+            return rightTopScore - leftTopScore;
+          }
+
+          return left.title.localeCompare(right.title, "zh-CN");
+        });
 
       return {
         category,
