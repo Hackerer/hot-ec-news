@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { loadAppConfig } from "../config/load-config.js";
 import { generateScheduleFile } from "../pipeline/generate-schedules.js";
 import { buildValidatedReport, importThirdPartyFile } from "../pipeline/import-third-party.js";
+import { getScheduleStatus, installSchedule, removeSchedule } from "../pipeline/manage-schedules.js";
 import { pushLatestReport, type PushLatestReportOptions } from "../pipeline/push-latest-report.js";
 import { runDailyPipeline } from "../pipeline/run-daily.js";
 import { runFixtureDemo } from "../pipeline/run-fixture-demo.js";
@@ -147,6 +148,52 @@ program
       rootDir,
     );
     console.log(`Schedule file: ${filePath}`);
+  });
+
+program
+  .command("schedule:install")
+  .description("Install the daily scheduler on macOS or Windows when running on the matching OS")
+  .requiredOption("--platform <platform>", "macos or windows")
+  .option("--time <time>", "Daily time in HH:MM")
+  .action((options: { platform: "macos" | "windows"; time?: string }) => {
+    const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
+    const config = loadAppConfig(rootDir);
+    const result = installSchedule(
+      options.platform,
+      options.time ?? config.scheduler.defaultTime,
+      rootDir,
+    );
+    console.log(result.message);
+    console.log(`Schedule path: ${result.filePath}`);
+    console.log(`Mode: ${result.mode}`);
+  });
+
+program
+  .command("schedule:remove")
+  .description("Remove the installed daily scheduler on macOS or Windows when running on the matching OS")
+  .requiredOption("--platform <platform>", "macos or windows")
+  .action((options: { platform: "macos" | "windows" }) => {
+    const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
+    const result = removeSchedule(options.platform, rootDir);
+    console.log(result.message);
+    console.log(`Schedule path: ${result.filePath}`);
+    console.log(`Mode: ${result.mode}`);
+  });
+
+program
+  .command("schedule:status")
+  .description("Show scheduler installation status for macOS or Windows")
+  .requiredOption("--platform <platform>", "macos or windows")
+  .action((options: { platform: "macos" | "windows" }) => {
+    const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
+    const status = getScheduleStatus(options.platform, rootDir);
+    console.log(status.message);
+    console.log(`Supported: ${status.supported}`);
+    console.log(`Installed: ${status.installed}`);
+    console.log(`Active: ${status.active}`);
+    if (status.filePath) {
+      console.log(`Schedule path: ${status.filePath}`);
+    }
   });
 
 program

@@ -5,6 +5,10 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 
 import { generateScheduleFile } from "../src/pipeline/generate-schedules.js";
+import {
+  generateWindowsTaskRemoveScript,
+  generateWindowsTaskStatusScript,
+} from "../src/schedulers/windows-task-scheduler.js";
 
 describe("generateScheduleFile", () => {
   test("writes a launchd plist", () => {
@@ -25,5 +29,10 @@ describe("generateScheduleFile", () => {
     expect(existsSync(filePath)).toBe(true);
     expect(content).toContain("Register-ScheduledTask");
     expect(content).toContain("npm run run:daily");
+  });
+
+  test("renders windows remove and status scripts", () => {
+    expect(generateWindowsTaskRemoveScript()).toContain("Unregister-ScheduledTask");
+    expect(generateWindowsTaskStatusScript()).toContain("Get-ScheduledTask");
   });
 });

@@ -34,6 +34,9 @@ npm test
 - `npx tsx src/cli/index.ts config:show`: inspect the resolved config after defaults + `config/app.json`
 - `npm run push:report -- --channel wecom --dry-run`: preview a push payload
 - `npm run schedule:generate -- --platform macos --time 09:00`: generate a scheduler file
+- `npx tsx src/cli/index.ts schedule:install --platform macos --time 09:00`: install the scheduler on the matching OS
+- `npx tsx src/cli/index.ts schedule:status --platform macos`: inspect scheduler status
+- `npx tsx src/cli/index.ts schedule:remove --platform macos`: remove the installed scheduler
 - `npm run status`: show the latest generated report
 - `npm run check`: run typecheck and automated tests
 
@@ -62,4 +65,5 @@ npm test
 - [v8 report](docs/reports/v8.md)
 - [v9 report](docs/reports/v9.md)
 - [v10 report](docs/reports/v10.md)
+- [v11 report](docs/reports/v11.md)
 - [Final acceptance](docs/acceptance/final-acceptance.md)
