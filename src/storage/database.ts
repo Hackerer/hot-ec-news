@@ -137,6 +137,74 @@ export class HotwordDatabase {
     });
   }
 
+  listHotwordsByDate(datePrefix: string): CollectedHotword[] {
+    const rows = this.db
+      .prepare(`
+        SELECT
+          provider,
+          source_tier AS sourceTier,
+          source_kind AS sourceKind,
+          keyword,
+          normalized_keyword AS normalizedKeyword,
+          category,
+          rank,
+          score_raw AS scoreRaw,
+          score_normalized AS scoreNormalized,
+          captured_at AS capturedAt,
+          query_seed AS querySeed,
+          metadata_json AS metadataJson
+        FROM collected_hotwords
+        WHERE substr(captured_at, 1, 10) = ?
+        ORDER BY captured_at DESC, score_normalized DESC
+      `)
+      .all(datePrefix) as Array<Record<string, unknown>>;
+
+    return rows.map((row) => {
+      const record: CollectedHotword = {
+        provider: String(row.provider) as CollectedHotword["provider"],
+        sourceTier: String(row.sourceTier) as CollectedHotword["sourceTier"],
+        sourceKind: String(row.sourceKind) as CollectedHotword["sourceKind"],
+        keyword: String(row.keyword),
+        normalizedKeyword: String(row.normalizedKeyword),
+        category: String(row.category) as CollectedHotword["category"],
+        rank: Number(row.rank),
+        scoreNormalized: Number(row.scoreNormalized),
+        capturedAt: String(row.capturedAt),
+      };
+
+      if (row.scoreRaw !== null) {
+        record.scoreRaw = Number(row.scoreRaw);
+      }
+
+      if (row.querySeed !== null) {
+        record.querySeed = String(row.querySeed);
+      }
+
+      if (row.metadataJson !== null) {
+        record.metadata = JSON.parse(String(row.metadataJson)) as Record<string, unknown>;
+      }
+
+      return record;
+    });
+  }
+
+  getLatestCollectionDate(): string | null {
+    const row = this.db
+      .prepare(`
+        SELECT captured_at AS capturedAt
+        FROM collected_hotwords
+        ORDER BY captured_at DESC
+        LIMIT 1
+      `)
+      .get() as Record<string, unknown> | undefined;
+
+    if (!row?.capturedAt) {
+      return null;
+    }
+
+    return String(row.capturedAt).slice(0, 10);
+  }
+
   saveReport(reportKey: string, format: string, outputPath: string, report: DailyReport): void {
     this.db
       .prepare(`

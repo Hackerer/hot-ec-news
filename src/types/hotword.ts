@@ -14,7 +14,11 @@ export type Provider =
   | "douyin"
   | "chanmama"
   | "feigua"
+  | "qiangua"
+  | "magicmirror"
   | "manual";
+
+export type ValidationStatus = "validated" | "primary_only" | "secondary_only";
 
 export interface CollectedHotword {
   provider: Provider;
@@ -41,6 +45,9 @@ export interface AggregatedHotword {
   sourceTiers: SourceTier[];
   bestRank: number;
   capturedAt: string;
+  secondaryProviders: Provider[];
+  confidence: number;
+  validationStatus: ValidationStatus;
 }
 
 export interface CategorySection {
@@ -53,9 +60,13 @@ export interface DailyReport {
   generatedAt: string;
   timezone: string;
   sections: CategorySection[];
+  validationHighlights: AggregatedHotword[];
   totals: {
     collected: number;
     aggregated: number;
     categories: number;
+    validated: number;
+    primaryOnly: number;
+    secondaryOnly: number;
   };
 }
