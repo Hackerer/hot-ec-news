@@ -81,4 +81,5 @@ npm test
 - [v20 report](docs/reports/v20.md)
 - [v21 report](docs/reports/v21.md)
 - [v22 report](docs/reports/v22.md)
+- [v23 report](docs/reports/v23.md)
 - [Final acceptance](docs/acceptance/final-acceptance.md)
