@@ -9,6 +9,7 @@ import type {
   TrendStatus,
   ValidationStatus,
 } from "../types/hotword.js";
+import { providerLabels, providerValues } from "../types/hotword.js";
 
 const categoryTitles = {
   apparel: "服饰热词",
@@ -16,6 +17,8 @@ const categoryTitles = {
   jewelry: "首饰热词",
   unknown: "未分类热词",
 } as const;
+
+const categoryTopLimit = 15;
 
 function resolveValidationStatus(sourceTiers: CollectedHotword["sourceTier"][]): ValidationStatus {
   const hasPrimary = sourceTiers.includes("primary");
@@ -246,11 +249,37 @@ export function buildDailyReport(
   );
   const aggregated = aggregateHotwords(filteredRecords, filteredPreviousRecords);
   const categories: DailyReport["sections"] = selectedCategories.map(
-    (category) => ({
-      category,
-      title: categoryTitles[category],
-      items: aggregated.filter((item) => item.category === category).slice(0, 10),
-    }),
+    (category) => {
+      const overallItems = aggregated.filter((item) => item.category === category).slice(0, categoryTopLimit);
+      const platformSections = providerValues
+        .map((provider) => {
+          const providerItems = aggregateHotwords(
+            filteredRecords.filter((record) => record.category === category && record.provider === provider),
+            filteredPreviousRecords.filter(
+              (record) => record.category === category && record.provider === provider,
+            ),
+          ).slice(0, categoryTopLimit);
+
+          if (providerItems.length === 0) {
+            return null;
+          }
+
+          return {
+            provider,
+            title: providerLabels[provider],
+            items: providerItems,
+          };
+        })
+        .filter((section): section is NonNullable<typeof section> => section !== null);
+
+      return {
+        category,
+        title: categoryTitles[category],
+        overallItems,
+        items: overallItems,
+        platformSections,
+      };
+    },
   );
 
   const validationHighlights = aggregated

@@ -20,6 +20,7 @@
 14. `v14` doctor 生产预检，提前识别交付失败风险
 15. `v15` pipeline run audit，记录最近一次 `run:daily` 的输入输出与结果
 16. `v16` recent run history，直接查看最近几次 pipeline 运行结果
+17. `v17` 报告模型升级，增加按品类的整体 Top15 与平台榜结构
 
 ## 验收项
 
@@ -42,10 +43,11 @@
 - 可在真正开启日推前先跑生产预检
 - 可回看最近一次 `run:daily` 的导入、跳过、告警和结果
 - 可直接查看最近几次 pipeline 运行结果，判断是否连续稳定
+- 报告数据模型可承载“每个品类先整体 Top15，再分平台 Top15”
 
 ## 实际结果
 
-- 自动化测试：`41` 项全部通过
+- 自动化测试：`42` 项全部通过
 - 主信源采集：在干净目录中成功采集并生成日报
 - 第三方校验：成功导入 `chanmama` 样例并生成校验结果
 - 推送：成功生成 `WeCom` 和 `Email` dry-run 预览
@@ -65,6 +67,7 @@
 - 生产预检：`doctor` 已能区分 fail / warn / pass，并识别 push misconfigured / preview_only / ready
 - run audit：`status` 已能展示最近一次 `run:daily` 的状态、导入文件、跳过文件和告警数量
 - recent history：`runs` 和 `status` 已能展示最近几次 pipeline 结果，并暴露失败错误信息
+- category structure：报告数据模型已为每个类目产出 `overallItems` 和 `platformSections`
 
 ## 推荐生产使用方式
 

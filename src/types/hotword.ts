@@ -33,6 +33,17 @@ export const providerValues = [
   "manual",
 ] as const satisfies readonly Provider[];
 
+export const providerLabels = {
+  taobao: "淘宝/天猫",
+  jd: "京东",
+  douyin: "抖音",
+  chanmama: "蝉妈妈",
+  feigua: "飞瓜数据",
+  qiangua: "千瓜数据",
+  magicmirror: "魔镜洞察",
+  manual: "手工导入",
+} as const satisfies Record<Provider, string>;
+
 export type ValidationStatus = "validated" | "primary_only" | "secondary_only";
 export type TrendStatus = "new" | "up" | "down" | "steady";
 export type ConfidenceBand = "high" | "medium" | "low";
@@ -82,7 +93,13 @@ export interface AggregatedHotword {
 export interface CategorySection {
   category: Category;
   title: string;
+  overallItems: AggregatedHotword[];
   items: AggregatedHotword[];
+  platformSections: Array<{
+    provider: Provider;
+    title: string;
+    items: AggregatedHotword[];
+  }>;
 }
 
 export interface DailyReport {
