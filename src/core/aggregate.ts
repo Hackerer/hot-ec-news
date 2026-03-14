@@ -1,5 +1,6 @@
 import type {
   AggregatedHotword,
+  Category,
   CollectedHotword,
   ConfidenceBand,
   DailyReport,
@@ -232,9 +233,19 @@ export function buildDailyReport(
   timezone: string,
   warnings: string[] = [],
   previousRecords: CollectedHotword[] = [],
+  selectedCategories: Exclude<Category, "unknown">[] = ["apparel", "shoes", "jewelry"],
 ): DailyReport {
-  const aggregated = aggregateHotwords(records, previousRecords);
-  const categories: DailyReport["sections"] = (["apparel", "shoes", "jewelry"] as const).map(
+  const allowedCategories = new Set(selectedCategories);
+  const filteredRecords = records.filter(
+    (record): record is CollectedHotword =>
+      record.category !== "unknown" && allowedCategories.has(record.category),
+  );
+  const filteredPreviousRecords = previousRecords.filter(
+    (record): record is CollectedHotword =>
+      record.category !== "unknown" && allowedCategories.has(record.category),
+  );
+  const aggregated = aggregateHotwords(filteredRecords, filteredPreviousRecords);
+  const categories: DailyReport["sections"] = selectedCategories.map(
     (category) => ({
       category,
       title: categoryTitles[category],
@@ -283,7 +294,7 @@ export function buildDailyReport(
     repeatedHighlights,
     warnings,
     totals: {
-      collected: records.length,
+      collected: filteredRecords.length,
       aggregated: aggregated.length,
       categories: categories.filter((section) => section.items.length > 0).length,
       validated: aggregated.filter((item) => item.validationStatus === "validated").length,

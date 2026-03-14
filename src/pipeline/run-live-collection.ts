@@ -27,8 +27,8 @@ export async function runLiveCollection(
   capturedAt = new Date().toISOString(),
 ): Promise<LiveCollectionResult> {
   const rootDir = resolveRootDir(explicitRoot);
-  const paths = createAppPaths(rootDir);
   const config = loadAppConfig(rootDir);
+  const paths = createAppPaths(rootDir, config);
 
   ensureAppDirectories(paths);
 
@@ -57,8 +57,12 @@ export async function runLiveCollection(
     throw new Error("All enabled live collectors failed.");
   }
 
+  database.deleteHotwordsForDate(capturedAt.slice(0, 10), {
+    sourceTier: "primary",
+    sourceKind: "platform_suggestions",
+  });
   database.insertHotwords(collected);
-  const report = buildDailyReport(collected, config.timezone, warnings);
+  const report = buildDailyReport(collected, config.timezone, warnings, [], config.categories);
   const markdown = renderMarkdownReport(report);
   const reportKey = `live-${capturedAt.slice(0, 10)}`;
   const reportPath = path.join(paths.reportDir, `${reportKey}.md`);

@@ -12,6 +12,15 @@ const validationStatusLabels = {
   secondary_only: "仅第二信源",
 } as const;
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function formatHotwordLine(item: AggregatedHotword): string {
   const trend =
     item.trend.status === "new"
@@ -77,9 +86,11 @@ function renderHtmlList(items: AggregatedHotword[], emptyText: string, includeRe
         item.trend.status === "new"
           ? "新上榜"
           : `${item.trend.deltaScore >= 0 ? "+" : ""}${item.trend.deltaScore.toFixed(2)}`;
-      const reviewReason = includeReviewReason ? `<td>${item.reviewFlags.join(", ")}</td>` : "";
+      const reviewReason = includeReviewReason
+        ? `<td>${escapeHtml(item.reviewFlags.join(", "))}</td>`
+        : "";
 
-      return `<tr><td>${item.keyword}</td><td>${trend}</td><td>${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(
+      return `<tr><td>${escapeHtml(item.keyword)}</td><td>${escapeHtml(trend)}</td><td>${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(
         2,
       )}</td><td>${validationStatusLabels[item.validationStatus]}</td>${reviewReason}</tr>`;
     })
@@ -94,7 +105,7 @@ export function renderEmailHtml(reportKey: string, report: DailyReport): string 
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <title>hot-ec-news ${reportKey}</title>
+    <title>hot-ec-news ${escapeHtml(reportKey)}</title>
     <style>
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; color: #111827; }
       h1, h2 { margin-bottom: 12px; }
@@ -108,8 +119,8 @@ export function renderEmailHtml(reportKey: string, report: DailyReport): string 
     </style>
   </head>
   <body>
-    <h1>hot-ec-news ${reportKey}</h1>
-    <p>生成时间：${report.generatedAt}</p>
+    <h1>hot-ec-news ${escapeHtml(reportKey)}</h1>
+    <p>生成时间：${escapeHtml(report.generatedAt)}</p>
     <div class="summary">
       <div class="card"><div>聚合词条</div><div class="value">${report.totals.aggregated}</div></div>
       <div class="card"><div>高可信</div><div class="value">${report.totals.highConfidence}</div></div>
@@ -126,7 +137,7 @@ export function renderEmailHtml(reportKey: string, report: DailyReport): string 
       report.warnings.length > 0
         ? `<h2>异常</h2><ul>${report.warnings
             .slice(0, 3)
-            .map((warning) => `<li class="warning">${warning}</li>`)
+            .map((warning) => `<li class="warning">${escapeHtml(warning)}</li>`)
             .join("")}</ul>`
         : ""
     }

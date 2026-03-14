@@ -1,4 +1,8 @@
 export type Category = "apparel" | "shoes" | "jewelry" | "unknown";
+export const reportableCategories = ["apparel", "shoes", "jewelry"] as const satisfies readonly Exclude<
+  Category,
+  "unknown"
+>[];
 
 export type SourceTier = "primary" | "secondary";
 

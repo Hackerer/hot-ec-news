@@ -12,5 +12,5 @@ export function allSeeds(): string[] {
 }
 
 export function seedsFromConfig(config: AppConfig): string[] {
-  return [...new Set(Object.values(config.seeds).flat())];
+  return [...new Set(config.categories.flatMap((category) => config.seeds[category] ?? []))];
 }

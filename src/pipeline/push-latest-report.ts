@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { loadAppConfig } from "../config/load-config.js";
 import { renderEmailPreview, sendEmailReport } from "../pushers/email.js";
 import { renderEmailHtml, renderPushDigestMarkdown } from "../pushers/render-digest.js";
 import { buildWecomPayload, sendWecomReport } from "../pushers/wecom.js";
@@ -25,7 +26,8 @@ export interface PushLatestReportOptions {
 
 export async function pushLatestReport(options: PushLatestReportOptions): Promise<string> {
   const rootDir = resolveRootDir(options.explicitRoot);
-  const paths = createAppPaths(rootDir);
+  const config = loadAppConfig(rootDir);
+  const paths = createAppPaths(rootDir, config);
   ensureAppDirectories(paths);
 
   const database = new HotwordDatabase(paths.dbFile);

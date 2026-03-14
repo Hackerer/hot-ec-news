@@ -14,8 +14,8 @@ export async function runDailyPipeline(
   fetchImpl: FetchLike = fetch,
 ): Promise<{ reportPath: string; importedFiles: string[]; pushOutputs: string[] }> {
   const rootDir = resolveRootDir(explicitRoot);
-  const paths = createAppPaths(rootDir);
   const config = loadAppConfig(rootDir);
+  const paths = createAppPaths(rootDir, config);
   ensureAppDirectories(paths);
 
   const liveResult = await runLiveCollection(rootDir, fetchImpl);

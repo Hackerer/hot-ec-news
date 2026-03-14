@@ -34,7 +34,8 @@ program
   .description("Initialize storage directories and SQLite database")
   .action(() => {
     const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
-    const paths = createAppPaths(rootDir);
+    const config = loadAppConfig(rootDir);
+    const paths = createAppPaths(rootDir, config);
     ensureAppDirectories(paths);
     const database = new HotwordDatabase(paths.dbFile);
     database.init();
@@ -153,7 +154,8 @@ program
   .description("Show latest report status")
   .action(() => {
     const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
-    const paths = createAppPaths(rootDir);
+    const config = loadAppConfig(rootDir);
+    const paths = createAppPaths(rootDir, config);
     ensureAppDirectories(paths);
     const database = new HotwordDatabase(paths.dbFile);
     database.init();

@@ -22,13 +22,19 @@ export function importThirdPartyFile(
   capturedAt = new Date().toISOString(),
 ): ThirdPartyImportResult {
   const rootDir = resolveRootDir(explicitRoot);
-  const paths = createAppPaths(rootDir);
+  const config = loadAppConfig(rootDir);
+  const paths = createAppPaths(rootDir, config);
   ensureAppDirectories(paths);
 
   const database = new HotwordDatabase(paths.dbFile);
   database.init();
 
   const records = importThirdPartyCsv(provider, filePath, capturedAt);
+  database.deleteHotwordsForDate(capturedAt.slice(0, 10), {
+    provider,
+    sourceTier: "secondary",
+    sourceKind: "third_party",
+  });
   database.insertHotwords(records);
 
   const archiveDir = path.join(paths.rawDir, provider, capturedAt.slice(0, 10));
@@ -49,8 +55,8 @@ export function buildValidatedReport(explicitRoot?: string, warnings?: string[])
   recordCount: number;
 } {
   const rootDir = resolveRootDir(explicitRoot);
-  const paths = createAppPaths(rootDir);
   const config = loadAppConfig(rootDir);
+  const paths = createAppPaths(rootDir, config);
   ensureAppDirectories(paths);
 
   const database = new HotwordDatabase(paths.dbFile);
@@ -64,7 +70,13 @@ export function buildValidatedReport(explicitRoot?: string, warnings?: string[])
   const records = database.listHotwordsByDate(latestDate);
   const previousDate = database.getPreviousCollectionDate(latestDate);
   const previousRecords = previousDate ? database.listHotwordsByDate(previousDate) : [];
-  const report = buildDailyReport(records, config.timezone, warnings ?? [], previousRecords);
+  const report = buildDailyReport(
+    records,
+    config.timezone,
+    warnings ?? [],
+    previousRecords,
+    config.categories,
+  );
   const reportKey = `validated-${latestDate}`;
   const reportPath = path.join(paths.reportDir, `${reportKey}.md`);
 

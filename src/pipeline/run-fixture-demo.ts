@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { createDefaultConfig } from "../config/defaults.js";
+import { loadAppConfig } from "../config/load-config.js";
 import { buildDailyReport } from "../core/aggregate.js";
 import { getFixtureHotwords } from "../fixtures/hotwords.js";
 import { renderMarkdownReport } from "../reports/render-markdown.js";
@@ -16,8 +16,8 @@ export interface FixtureDemoResult {
 
 export function runFixtureDemo(explicitRoot?: string): FixtureDemoResult {
   const rootDir = resolveRootDir(explicitRoot);
-  const paths = createAppPaths(rootDir);
-  const config = createDefaultConfig();
+  const config = loadAppConfig(rootDir);
+  const paths = createAppPaths(rootDir, config);
 
   ensureAppDirectories(paths);
 
@@ -25,9 +25,10 @@ export function runFixtureDemo(explicitRoot?: string): FixtureDemoResult {
   database.init();
 
   const records = getFixtureHotwords();
+  database.deleteHotwordsForDate(records[0]?.capturedAt.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
   database.insertHotwords(records);
 
-  const report = buildDailyReport(records, config.timezone);
+  const report = buildDailyReport(records, config.timezone, [], [], config.categories);
   const markdown = renderMarkdownReport(report);
   const reportKey = `fixture-${report.generatedAt.slice(0, 10)}`;
   const reportPath = path.join(paths.reportDir, `${reportKey}.md`);

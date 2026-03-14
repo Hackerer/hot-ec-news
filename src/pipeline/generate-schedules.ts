@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { loadAppConfig } from "../config/load-config.js";
 import { generateLaunchdPlist } from "../schedulers/launchd.js";
 import { generateWindowsTaskScript } from "../schedulers/windows-task-scheduler.js";
 import { createAppPaths, ensureAppDirectories, resolveRootDir } from "../utils/paths.js";
@@ -11,7 +12,8 @@ export function generateScheduleFile(
   explicitRoot?: string,
 ): string {
   const rootDir = resolveRootDir(explicitRoot);
-  const paths = createAppPaths(rootDir);
+  const config = loadAppConfig(rootDir);
+  const paths = createAppPaths(rootDir, config);
   ensureAppDirectories(paths);
 
   if (platform === "macos") {

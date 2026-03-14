@@ -86,6 +86,33 @@ export class HotwordDatabase {
     return records.length;
   }
 
+  deleteHotwordsForDate(
+    datePrefix: string,
+    filters: Partial<Pick<CollectedHotword, "provider" | "sourceTier" | "sourceKind">> = {},
+  ): number {
+    const clauses = ["substr(captured_at, 1, 10) = ?"];
+    const values: Array<string> = [datePrefix];
+
+    if (filters.provider) {
+      clauses.push("provider = ?");
+      values.push(filters.provider);
+    }
+
+    if (filters.sourceTier) {
+      clauses.push("source_tier = ?");
+      values.push(filters.sourceTier);
+    }
+
+    if (filters.sourceKind) {
+      clauses.push("source_kind = ?");
+      values.push(filters.sourceKind);
+    }
+
+    const statement = this.db.prepare(`DELETE FROM collected_hotwords WHERE ${clauses.join(" AND ")}`);
+    const result = statement.run(...values);
+    return Number(result.changes ?? 0);
+  }
+
   listHotwords(limit = 20): CollectedHotword[] {
     const rows = this.db
       .prepare(`

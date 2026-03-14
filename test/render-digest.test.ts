@@ -94,4 +94,26 @@ describe("renderEmailHtml", () => {
     expect(html).toContain("待人工复核");
     expect(html).toContain("聚合词条");
   });
+
+  test("escapes untrusted keyword and warning values", () => {
+    const report = buildDailyReport(
+      [
+        makeRecord({
+          keyword: "<b>危险词</b>",
+          provider: "magicmirror",
+          sourceTier: "secondary",
+          scoreNormalized: 30,
+          capturedAt: "2026-03-14T09:00:00+08:00",
+        }),
+      ],
+      "Asia/Shanghai",
+      ['<script>alert("x")</script>'],
+    );
+
+    const html = renderEmailHtml("validated-2026-03-14", report);
+
+    expect(html).toContain("&lt;b&gt;危险词&lt;/b&gt;");
+    expect(html).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
+    expect(html).not.toContain("<script>alert(\"x\")</script>");
+  });
 });

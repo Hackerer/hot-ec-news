@@ -40,6 +40,8 @@ npm test
 ## Configuration
 
 - Copy [app.example.json](config/app.example.json) to `config/app.json`
+- `reportDir` and `databasePath` are honored and may be relative to the project root or absolute paths
+- `categories` controls both seed collection and report sections
 - Enable or disable `sources`
 - Enable `pushChannels`
 - Set `autoPushOnDaily` to `true` if you want `run:daily` to generate push previews or real pushes automatically
@@ -59,4 +61,5 @@ npm test
 - [v7 report](docs/reports/v7.md)
 - [v8 report](docs/reports/v8.md)
 - [v9 report](docs/reports/v9.md)
+- [v10 report](docs/reports/v10.md)
 - [Final acceptance](docs/acceptance/final-acceptance.md)
