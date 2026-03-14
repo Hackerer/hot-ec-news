@@ -1,6 +1,6 @@
 {
   "name": "hot-ec-news",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cross-platform ecommerce hot keyword pipeline for apparel, shoes, and jewelry.",
   "directories": {
     "doc": "docs"
@@ -11,6 +11,7 @@
     "test": "vitest run",
     "check": "npm run typecheck && npm run test",
     "demo:fixtures": "tsx src/cli/index.ts demo:fixtures",
+    "collect:live": "tsx src/cli/index.ts collect:live",
     "init": "tsx src/cli/index.ts init",
     "status": "tsx src/cli/index.ts status"
   },

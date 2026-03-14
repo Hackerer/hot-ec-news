@@ -3,6 +3,7 @@
 import { Command } from "commander";
 
 import { runFixtureDemo } from "../pipeline/run-fixture-demo.js";
+import { runLiveCollection } from "../pipeline/run-live-collection.js";
 import { HotwordDatabase } from "../storage/database.js";
 import { createAppPaths, ensureAppDirectories, resolveRootDir } from "../utils/paths.js";
 
@@ -33,6 +34,18 @@ program
     const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
     const result = runFixtureDemo(rootDir);
     console.log(`Collected ${result.collected} fixture hotwords.`);
+    console.log(`Report key: ${result.reportKey}`);
+    console.log(`Report path: ${result.reportPath}`);
+  });
+
+program
+  .command("collect:live")
+  .description("Collect live keywords from Taobao and JD suggestion endpoints")
+  .action(async () => {
+    const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
+    const result = await runLiveCollection(rootDir);
+    console.log(`Collected ${result.collected} live hotwords.`);
+    console.log(`Seeds: ${result.seeds.join(", ")}`);
     console.log(`Report key: ${result.reportKey}`);
     console.log(`Report path: ${result.reportPath}`);
   });
