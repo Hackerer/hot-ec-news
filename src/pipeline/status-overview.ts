@@ -4,7 +4,8 @@ import path from "node:path";
 import { loadAppConfig } from "../config/load-config.js";
 import { getScheduleStatus, type ScheduleStatusResult } from "./manage-schedules.js";
 import { HotwordDatabase } from "../storage/database.js";
-import type { AppConfig, PushChannelConfig } from "../config/schema.js";
+import type { AppConfig } from "../config/schema.js";
+import { getPushChannelStatus, type PushChannelStatus } from "./push-readiness.js";
 import { createAppPaths, ensureAppDirectories, resolveRootDir } from "../utils/paths.js";
 
 type RuntimePlatform = NodeJS.Platform;
@@ -18,14 +19,6 @@ interface StatusOptions {
       ? E
       : never
     : never;
-}
-
-export interface PushChannelStatus {
-  type: PushChannelConfig["type"];
-  enabled: boolean;
-  dryRun: boolean;
-  readiness: "disabled" | "preview_only" | "ready" | "misconfigured";
-  detail: string;
 }
 
 export interface WorkspaceStatus {
@@ -51,70 +44,6 @@ export interface WorkspaceStatus {
     windowsArtifactExists: boolean;
     runtimeStatus?: ScheduleStatusResult;
   };
-}
-
-function getPushChannelStatus(channel: PushChannelConfig): PushChannelStatus {
-  if (!channel.enabled) {
-    return {
-      type: channel.type,
-      enabled: false,
-      dryRun: channel.dryRun,
-      readiness: "disabled",
-      detail: "channel disabled",
-    };
-  }
-
-  if (channel.dryRun) {
-    return {
-      type: channel.type,
-      enabled: true,
-      dryRun: true,
-      readiness: "preview_only",
-      detail: "dry-run only",
-    };
-  }
-
-  if (channel.type === "wecom") {
-    return channel.webhookUrl
-      ? {
-          type: channel.type,
-          enabled: true,
-          dryRun: false,
-          readiness: "ready",
-          detail: "webhook configured",
-        }
-      : {
-          type: channel.type,
-          enabled: true,
-          dryRun: false,
-          readiness: "misconfigured",
-          detail: "missing webhookUrl",
-        };
-  }
-
-  const missingFields = [
-    !channel.smtpHost && "smtpHost",
-    !channel.smtpUser && "smtpUser",
-    !channel.smtpPass && "smtpPass",
-    !channel.emailFrom && "emailFrom",
-    !channel.emailTo && "emailTo",
-  ].filter(Boolean);
-
-  return missingFields.length === 0
-    ? {
-        type: channel.type,
-        enabled: true,
-        dryRun: false,
-        readiness: "ready",
-        detail: "smtp delivery configured",
-      }
-    : {
-        type: channel.type,
-        enabled: true,
-        dryRun: false,
-        readiness: "misconfigured",
-        detail: `missing ${missingFields.join(", ")}`,
-      };
 }
 
 function buildScheduleStatus(

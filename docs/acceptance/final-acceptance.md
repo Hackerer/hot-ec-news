@@ -17,6 +17,7 @@
 11. `v11` 调度安装、调度状态、调度移除闭环
 12. `v12` 交付状态总览，统一报告/调度/推送准备度
 13. `v13` third-party processed ledger，避免重复扫描重复导入
+14. `v14` doctor 生产预检，提前识别交付失败风险
 
 ## 验收项
 
@@ -36,10 +37,11 @@
 - 调度能力不仅能生成文件，还能安装、查看状态和移除
 - 可一眼查看当前系统是否具备日报、调度和推送交付条件
 - 第三方自动导入可识别“已处理文件”并自动跳过
+- 可在真正开启日推前先跑生产预检
 
 ## 实际结果
 
-- 自动化测试：`36` 项全部通过
+- 自动化测试：`38` 项全部通过
 - 主信源采集：在干净目录中成功采集并生成日报
 - 第三方校验：成功导入 `chanmama` 样例并生成校验结果
 - 推送：成功生成 `WeCom` 和 `Email` dry-run 预览
@@ -56,6 +58,7 @@
 - 调度闭环：已支持 `schedule:install / schedule:status / schedule:remove`，并通过无副作用验收验证 macOS 执行路径与 Windows 脚本生成路径
 - 状态总览：`status` 已能输出最新报告摘要、调度产物、启用信源和推送准备度
 - processed ledger：第二次扫描同一第三方 CSV 时会进入 `Skipped files`，不会再次导入
+- 生产预检：`doctor` 已能区分 fail / warn / pass，并识别 push misconfigured / preview_only / ready
 
 ## 推荐生产使用方式
 

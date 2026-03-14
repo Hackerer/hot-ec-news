@@ -3,6 +3,7 @@
 import { Command } from "commander";
 
 import { loadAppConfig } from "../config/load-config.js";
+import { runDoctor } from "../pipeline/doctor.js";
 import { generateScheduleFile } from "../pipeline/generate-schedules.js";
 import { buildValidatedReport, importThirdPartyFile } from "../pipeline/import-third-party.js";
 import { getScheduleStatus, installSchedule, removeSchedule } from "../pipeline/manage-schedules.js";
@@ -29,6 +30,20 @@ program
     const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
     const config = loadAppConfig(rootDir);
     console.log(JSON.stringify(config, null, 2));
+  });
+
+program
+  .command("doctor")
+  .description("Run a production preflight check for sources, push channels, paths, and scheduler")
+  .action(() => {
+    const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
+    const result = runDoctor(rootDir);
+    console.log(`Workspace: ${result.rootDir}`);
+    console.log(`Overall: ${result.ok ? "PASS" : "FAIL"}`);
+    for (const check of result.checks) {
+      console.log(`[${check.level.toUpperCase()}] ${check.summary}`);
+      console.log(`  ${check.detail}`);
+    }
   });
 
 program
