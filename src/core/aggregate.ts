@@ -1,8 +1,10 @@
 import type {
   AggregatedHotword,
   CollectedHotword,
+  ConfidenceBand,
   DailyReport,
   Provider,
+  ReviewFlag,
   TrendStatus,
   ValidationStatus,
 } from "../types/hotword.js";
@@ -31,23 +33,65 @@ function resolveValidationStatus(sourceTiers: CollectedHotword["sourceTier"][]):
 
 function calculateConfidence(
   validationStatus: ValidationStatus,
-  providers: Provider[],
+  primaryProviders: Provider[],
   secondaryProviders: Provider[],
+  sampleCount: number,
   score: number,
+  hasHistory: boolean,
 ): number {
-  const providerBonus = providers.length * 4;
-  const secondaryBonus = secondaryProviders.length * 8;
-  const scoreBonus = Math.min(20, score / 20);
+  const baseScore =
+    validationStatus === "validated" ? 62 : validationStatus === "primary_only" ? 50 : 32;
+  const primaryBonus = Math.min(12, primaryProviders.length * 6);
+  const secondaryBonus = Math.min(16, secondaryProviders.length * 10);
+  const sampleBonus = Math.min(8, sampleCount * 2);
+  const historyBonus = hasHistory ? 10 : 0;
+  const scoreBonus = Math.min(10, score / 40);
 
-  if (validationStatus === "validated") {
-    return Math.min(100, Number((70 + providerBonus + secondaryBonus + scoreBonus).toFixed(2)));
+  return Number(
+    Math.min(
+      100,
+      baseScore + primaryBonus + secondaryBonus + sampleBonus + historyBonus + scoreBonus,
+    ).toFixed(2),
+  );
+}
+
+function resolveConfidenceBand(confidence: number): ConfidenceBand {
+  if (confidence >= 80) {
+    return "high";
   }
 
-  if (validationStatus === "primary_only") {
-    return Math.min(89, Number((55 + providerBonus + scoreBonus).toFixed(2)));
+  if (confidence >= 60) {
+    return "medium";
   }
 
-  return Math.min(69, Number((40 + secondaryBonus + scoreBonus).toFixed(2)));
+  return "low";
+}
+
+function resolveReviewFlags(
+  validationStatus: ValidationStatus,
+  providers: Provider[],
+  trendStatus: TrendStatus,
+  confidenceBand: ConfidenceBand,
+): ReviewFlag[] {
+  const reviewFlags = new Set<ReviewFlag>();
+
+  if (providers.length === 1) {
+    reviewFlags.add("single_source");
+  }
+
+  if (validationStatus === "secondary_only") {
+    reviewFlags.add("secondary_only");
+  }
+
+  if (trendStatus === "new" && validationStatus !== "validated") {
+    reviewFlags.add("new_unvalidated");
+  }
+
+  if (confidenceBand === "low") {
+    reviewFlags.add("low_confidence");
+  }
+
+  return [...reviewFlags];
 }
 
 function resolveTrend(
@@ -78,7 +122,12 @@ function resolveTrend(
   };
 }
 
-function aggregateCurrentWindow(records: CollectedHotword[]): AggregatedHotword[] {
+type AggregatedWindowItem = Omit<
+  AggregatedHotword,
+  "confidence" | "confidenceBand" | "trend" | "reviewFlags"
+>;
+
+function aggregateCurrentWindow(records: CollectedHotword[]): AggregatedWindowItem[] {
   const groups = new Map<string, CollectedHotword[]>();
 
   for (const record of records) {
@@ -105,6 +154,9 @@ function aggregateCurrentWindow(records: CollectedHotword[]): AggregatedHotword[
       }
 
       const providers = [...new Set(bucket.map((item) => item.provider))];
+      const primaryProviders = [
+        ...new Set(bucket.filter((item) => item.sourceTier === "primary").map((item) => item.provider)),
+      ];
       const sourceTiers = [...new Set(bucket.map((item) => item.sourceTier))];
       const secondaryProviders = [
         ...new Set(
@@ -112,7 +164,6 @@ function aggregateCurrentWindow(records: CollectedHotword[]): AggregatedHotword[
         ),
       ];
       const validationStatus = resolveValidationStatus(sourceTiers);
-      const confidence = calculateConfidence(validationStatus, providers, secondaryProviders, score);
 
       return {
         keyword: first.keyword,
@@ -125,14 +176,8 @@ function aggregateCurrentWindow(records: CollectedHotword[]): AggregatedHotword[
         bestRank,
         capturedAt: latest,
         secondaryProviders,
-        confidence,
         validationStatus,
-        trend: {
-          status: "steady",
-          previousScore: null,
-          deltaScore: 0,
-        },
-      } satisfies AggregatedHotword;
+      } satisfies AggregatedWindowItem;
     })
     .sort((left, right) => right.score - left.score || left.bestRank - right.bestRank);
 }
@@ -145,10 +190,41 @@ export function aggregateHotwords(
     aggregateCurrentWindow(previousRecords).map((item) => [item.normalizedKeyword, item.score]),
   );
 
-  return aggregateCurrentWindow(records).map((item) => ({
-    ...item,
-    trend: resolveTrend(item.score, previousScores.get(item.normalizedKeyword) ?? null),
-  }));
+  return aggregateCurrentWindow(records)
+    .map((item) => {
+      const previousScore = previousScores.get(item.normalizedKeyword) ?? null;
+      const trend = resolveTrend(item.score, previousScore);
+      const primaryProviders = item.providers.filter((provider) => !item.secondaryProviders.includes(provider));
+      const confidence = calculateConfidence(
+        item.validationStatus,
+        primaryProviders,
+        item.secondaryProviders,
+        item.sampleCount,
+        item.score,
+        previousScore !== null,
+      );
+      const confidenceBand = resolveConfidenceBand(confidence);
+      const reviewFlags = resolveReviewFlags(
+        item.validationStatus,
+        item.providers,
+        trend.status,
+        confidenceBand,
+      );
+
+      return {
+        ...item,
+        confidence,
+        confidenceBand,
+        trend,
+        reviewFlags,
+      } satisfies AggregatedHotword;
+    })
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.confidence - left.confidence ||
+        left.bestRank - right.bestRank,
+    );
 }
 
 export function buildDailyReport(
@@ -171,6 +247,21 @@ export function buildDailyReport(
     .sort((left, right) => right.confidence - left.confidence || right.score - left.score)
     .slice(0, 10);
 
+  const confidenceHighlights = aggregated
+    .filter((item) => item.confidenceBand === "high")
+    .sort((left, right) => right.confidence - left.confidence || right.score - left.score)
+    .slice(0, 10);
+
+  const reviewHighlights = aggregated
+    .filter((item) => item.reviewFlags.length > 0)
+    .sort(
+      (left, right) =>
+        right.reviewFlags.length - left.reviewFlags.length ||
+        left.confidence - right.confidence ||
+        right.score - left.score,
+    )
+    .slice(0, 10);
+
   const newHighlights = aggregated
     .filter((item) => item.trend.status === "new")
     .sort((left, right) => right.score - left.score || left.bestRank - right.bestRank)
@@ -186,6 +277,8 @@ export function buildDailyReport(
     timezone,
     sections: categories,
     validationHighlights,
+    confidenceHighlights,
+    reviewHighlights,
     newHighlights,
     repeatedHighlights,
     warnings,
@@ -198,6 +291,10 @@ export function buildDailyReport(
       secondaryOnly: aggregated.filter((item) => item.validationStatus === "secondary_only").length,
       newEntries: aggregated.filter((item) => item.trend.status === "new").length,
       repeatedEntries: aggregated.filter((item) => item.trend.status !== "new").length,
+      highConfidence: aggregated.filter((item) => item.confidenceBand === "high").length,
+      mediumConfidence: aggregated.filter((item) => item.confidenceBand === "medium").length,
+      lowConfidence: aggregated.filter((item) => item.confidenceBand === "low").length,
+      reviewNeeded: aggregated.filter((item) => item.reviewFlags.length > 0).length,
     },
   };
 }

@@ -1,5 +1,24 @@
 import type { DailyReport } from "../types/hotword.js";
 
+const confidenceBandLabels = {
+  high: "高",
+  medium: "中",
+  low: "低",
+} as const;
+
+const validationStatusLabels = {
+  validated: "已第二信源校验",
+  primary_only: "仅第一信源",
+  secondary_only: "仅第二信源",
+} as const;
+
+const reviewFlagLabels = {
+  single_source: "单一信源",
+  secondary_only: "仅第二信源",
+  new_unvalidated: "新词未完成校验",
+  low_confidence: "低可信度",
+} as const;
+
 export function renderMarkdownReport(report: DailyReport): string {
   const lines: string[] = [
     "# 每日电商热词日报",
@@ -17,6 +36,10 @@ export function renderMarkdownReport(report: DailyReport): string {
     `- 仅第二信源：${report.totals.secondaryOnly}`,
     `- 新增词：${report.totals.newEntries}`,
     `- 连续上榜词：${report.totals.repeatedEntries}`,
+    `- 高可信词：${report.totals.highConfidence}`,
+    `- 中可信词：${report.totals.mediumConfidence}`,
+    `- 低可信词：${report.totals.lowConfidence}`,
+    `- 待人工复核：${report.totals.reviewNeeded}`,
     "",
   ];
 
@@ -33,7 +56,7 @@ export function renderMarkdownReport(report: DailyReport): string {
           ? "新上榜"
           : `较上次 ${item.trend.deltaScore >= 0 ? "+" : ""}${item.trend.deltaScore.toFixed(2)}`;
       lines.push(
-        `${index + 1}. ${item.keyword} | 分数 ${item.score.toFixed(2)} | ${trendLabel} | 最优排名 ${item.bestRank} | 来源 ${item.providers.join(", ")}`,
+        `${index + 1}. ${item.keyword} | 分数 ${item.score.toFixed(2)} | ${trendLabel} | 可信度 ${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(2)} | 最优排名 ${item.bestRank} | 来源 ${item.providers.join(", ")}`,
       );
     }
     lines.push("");
@@ -45,7 +68,36 @@ export function renderMarkdownReport(report: DailyReport): string {
   } else {
     for (const [index, item] of report.validationHighlights.entries()) {
       lines.push(
-        `${index + 1}. ${item.keyword} | 置信度 ${item.confidence.toFixed(2)} | 第二信源 ${item.secondaryProviders.join(", ")}`,
+        `${index + 1}. ${item.keyword} | 置信度 ${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(2)} | 第二信源 ${item.secondaryProviders.join(", ")}`,
+      );
+    }
+    lines.push("");
+  }
+
+  lines.push("## 高可信热词", "");
+  if (report.confidenceHighlights.length === 0) {
+    lines.push("- 当前没有高可信词", "");
+  } else {
+    for (const [index, item] of report.confidenceHighlights.entries()) {
+      const trendLabel =
+        item.trend.status === "new"
+          ? "新上榜"
+          : `变化 ${item.trend.deltaScore >= 0 ? "+" : ""}${item.trend.deltaScore.toFixed(2)}`;
+      lines.push(
+        `${index + 1}. ${item.keyword} | 可信度 ${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(2)} | ${validationStatusLabels[item.validationStatus]} | ${trendLabel}`,
+      );
+    }
+    lines.push("");
+  }
+
+  lines.push("## 待人工复核", "");
+  if (report.reviewHighlights.length === 0) {
+    lines.push("- 当前没有需要复核的词", "");
+  } else {
+    for (const [index, item] of report.reviewHighlights.entries()) {
+      const reasons = item.reviewFlags.map((flag) => reviewFlagLabels[flag]).join("、");
+      lines.push(
+        `${index + 1}. ${item.keyword} | 可信度 ${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(2)} | 原因 ${reasons}`,
       );
     }
     lines.push("");
@@ -56,7 +108,9 @@ export function renderMarkdownReport(report: DailyReport): string {
     lines.push("- 当前没有新增词", "");
   } else {
     for (const [index, item] of report.newHighlights.entries()) {
-      lines.push(`${index + 1}. ${item.keyword} | 分数 ${item.score.toFixed(2)} | 来源 ${item.providers.join(", ")}`);
+      lines.push(
+        `${index + 1}. ${item.keyword} | 分数 ${item.score.toFixed(2)} | 可信度 ${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(2)} | 来源 ${item.providers.join(", ")}`,
+      );
     }
     lines.push("");
   }

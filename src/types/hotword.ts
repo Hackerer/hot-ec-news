@@ -31,6 +31,12 @@ export const providerValues = [
 
 export type ValidationStatus = "validated" | "primary_only" | "secondary_only";
 export type TrendStatus = "new" | "up" | "down" | "steady";
+export type ConfidenceBand = "high" | "medium" | "low";
+export type ReviewFlag =
+  | "single_source"
+  | "secondary_only"
+  | "new_unvalidated"
+  | "low_confidence";
 
 export interface CollectedHotword {
   provider: Provider;
@@ -59,12 +65,14 @@ export interface AggregatedHotword {
   capturedAt: string;
   secondaryProviders: Provider[];
   confidence: number;
+  confidenceBand: ConfidenceBand;
   validationStatus: ValidationStatus;
   trend: {
     status: TrendStatus;
     previousScore: number | null;
     deltaScore: number;
   };
+  reviewFlags: ReviewFlag[];
 }
 
 export interface CategorySection {
@@ -78,6 +86,8 @@ export interface DailyReport {
   timezone: string;
   sections: CategorySection[];
   validationHighlights: AggregatedHotword[];
+  confidenceHighlights: AggregatedHotword[];
+  reviewHighlights: AggregatedHotword[];
   newHighlights: AggregatedHotword[];
   repeatedHighlights: AggregatedHotword[];
   warnings: string[];
@@ -90,5 +100,9 @@ export interface DailyReport {
     secondaryOnly: number;
     newEntries: number;
     repeatedEntries: number;
+    highConfidence: number;
+    mediumConfidence: number;
+    lowConfidence: number;
+    reviewNeeded: number;
   };
 }
