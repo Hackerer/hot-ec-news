@@ -9,6 +9,9 @@ export interface AppPaths {
   rawDir: string;
   normalizedDir: string;
   snapshotsDir: string;
+  importsDir: string;
+  pushPreviewDir: string;
+  schedulesDir: string;
 }
 
 export function resolveRootDir(explicitRoot?: string): string {
@@ -24,6 +27,9 @@ export function createAppPaths(rootDir: string): AppPaths {
     rawDir: path.join(rootDir, "data", "raw"),
     normalizedDir: path.join(rootDir, "data", "normalized"),
     snapshotsDir: path.join(rootDir, "data", "snapshots"),
+    importsDir: path.join(rootDir, "data", "imports"),
+    pushPreviewDir: path.join(rootDir, "data", "push-preview"),
+    schedulesDir: path.join(rootDir, "data", "schedules"),
   };
 }
 
@@ -35,6 +41,9 @@ export function ensureAppDirectories(paths: AppPaths): void {
     paths.rawDir,
     paths.normalizedDir,
     paths.snapshotsDir,
+    paths.importsDir,
+    paths.pushPreviewDir,
+    paths.schedulesDir,
   ]) {
     mkdirSync(directory, { recursive: true });
   }

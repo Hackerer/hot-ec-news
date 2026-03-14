@@ -1,0 +1,82 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
+import { renderEmailPreview, sendEmailReport } from "../pushers/email.js";
+import { buildWecomPayload, sendWecomReport } from "../pushers/wecom.js";
+import { HotwordDatabase } from "../storage/database.js";
+import { createAppPaths, ensureAppDirectories, resolveRootDir } from "../utils/paths.js";
+
+type PushChannel = "wecom" | "email";
+
+export interface PushLatestReportOptions {
+  channel: PushChannel;
+  explicitRoot?: string;
+  dryRun?: boolean;
+  webhookUrl?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  smtpPass?: string;
+  emailFrom?: string;
+  emailTo?: string;
+}
+
+export async function pushLatestReport(options: PushLatestReportOptions): Promise<string> {
+  const rootDir = resolveRootDir(options.explicitRoot);
+  const paths = createAppPaths(rootDir);
+  ensureAppDirectories(paths);
+
+  const database = new HotwordDatabase(paths.dbFile);
+  database.init();
+  const latest = database.getLatestReport();
+
+  if (!latest) {
+    throw new Error("No report available to push.");
+  }
+
+  const markdown = readFileSync(latest.path, "utf8");
+  const previewBase = path.join(paths.pushPreviewDir, `${latest.reportKey}-${options.channel}`);
+
+  if (options.channel === "wecom") {
+    if (options.dryRun || !options.webhookUrl) {
+      const previewPath = `${previewBase}.json`;
+      writeFileSync(previewPath, JSON.stringify(buildWecomPayload(markdown), null, 2), "utf8");
+      return previewPath;
+    }
+
+    await sendWecomReport({
+      webhookUrl: options.webhookUrl,
+      markdown,
+    });
+    return latest.path;
+  }
+
+  if (
+    options.dryRun ||
+    !options.smtpHost ||
+    !options.smtpUser ||
+    !options.smtpPass ||
+    !options.emailFrom ||
+    !options.emailTo
+  ) {
+    const previewPath = `${previewBase}.json`;
+    const preview = await renderEmailPreview(`hot-ec-news ${latest.reportKey}`, markdown);
+    writeFileSync(previewPath, preview, "utf8");
+    return previewPath;
+  }
+
+  await sendEmailReport({
+    host: options.smtpHost,
+    port: options.smtpPort ?? 465,
+    secure: options.smtpSecure ?? true,
+    user: options.smtpUser,
+    pass: options.smtpPass,
+    from: options.emailFrom,
+    to: options.emailTo,
+    subject: `hot-ec-news ${latest.reportKey}`,
+    markdown,
+  });
+
+  return latest.path;
+}

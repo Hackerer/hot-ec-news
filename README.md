@@ -17,6 +17,7 @@ npm run init
 npm run demo:fixtures
 npm run collect:live
 npm run report:validated
+npm run run:daily
 npm test
 ```
 
@@ -27,6 +28,9 @@ npm test
 - `npm run collect:live`: collect live keywords from Taobao and JD suggestion endpoints
 - `npx tsx src/cli/index.ts import:third-party --provider chanmama --file fixtures/third-party/chanmama-sample.csv`: import a third-party CSV export
 - `npm run report:validated`: build a validated report from the latest collected date
+- `npm run run:daily`: run live collection, auto-import files from `data/imports`, and generate a validated report
+- `npm run push:report -- --channel wecom --dry-run`: preview a push payload
+- `npm run schedule:generate -- --platform macos --time 09:00`: generate a scheduler file
 - `npm run status`: show the latest generated report
 - `npm run check`: run typecheck and automated tests
 
@@ -37,3 +41,4 @@ npm test
 - [v1 report](docs/reports/v1.md)
 - [v2 report](docs/reports/v2.md)
 - [v3 report](docs/reports/v3.md)
+- [v4 report](docs/reports/v4.md)
