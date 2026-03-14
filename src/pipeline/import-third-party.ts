@@ -1,9 +1,9 @@
 import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { importThirdPartyCsv } from "../importers/third-party-csv.js";
 import { buildDailyReport } from "../core/aggregate.js";
-import { createDefaultConfig } from "../config/defaults.js";
+import { loadAppConfig } from "../config/load-config.js";
+import { importThirdPartyCsv } from "../importers/third-party-csv.js";
 import { renderMarkdownReport } from "../reports/render-markdown.js";
 import { HotwordDatabase } from "../storage/database.js";
 import type { Provider } from "../types/hotword.js";
@@ -50,7 +50,7 @@ export function buildValidatedReport(explicitRoot?: string, warnings?: string[])
 } {
   const rootDir = resolveRootDir(explicitRoot);
   const paths = createAppPaths(rootDir);
-  const config = createDefaultConfig();
+  const config = loadAppConfig(rootDir);
   ensureAppDirectories(paths);
 
   const database = new HotwordDatabase(paths.dbFile);

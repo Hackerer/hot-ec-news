@@ -1,26 +1,21 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 
+import { loadAppConfig } from "../config/load-config.js";
+import { inferThirdPartyProvider, isEnabledThirdPartyProvider } from "../importers/registry.js";
 import { buildValidatedReport, importThirdPartyFile } from "./import-third-party.js";
+import { pushConfiguredChannels } from "../pushers/registry.js";
 import { runLiveCollection } from "./run-live-collection.js";
 import type { FetchLike } from "../collectors/types.js";
-import type { Provider } from "../types/hotword.js";
 import { createAppPaths, ensureAppDirectories, resolveRootDir } from "../utils/paths.js";
-
-function inferProviderFromFilename(fileName: string): Provider | null {
-  if (fileName.startsWith("chanmama")) return "chanmama";
-  if (fileName.startsWith("feigua")) return "feigua";
-  if (fileName.startsWith("qiangua")) return "qiangua";
-  if (fileName.startsWith("magicmirror")) return "magicmirror";
-  return null;
-}
 
 export async function runDailyPipeline(
   explicitRoot?: string,
   fetchImpl: FetchLike = fetch,
-): Promise<{ reportPath: string; importedFiles: string[] }> {
+): Promise<{ reportPath: string; importedFiles: string[]; pushOutputs: string[] }> {
   const rootDir = resolveRootDir(explicitRoot);
   const paths = createAppPaths(rootDir);
+  const config = loadAppConfig(rootDir);
   ensureAppDirectories(paths);
 
   const liveResult = await runLiveCollection(rootDir, fetchImpl);
@@ -31,8 +26,11 @@ export async function runDailyPipeline(
       continue;
     }
 
-    const provider = inferProviderFromFilename(fileName);
+    const provider = inferThirdPartyProvider(fileName);
     if (!provider) {
+      continue;
+    }
+    if (!isEnabledThirdPartyProvider(provider, config)) {
       continue;
     }
 
@@ -41,8 +39,12 @@ export async function runDailyPipeline(
   }
 
   const result = buildValidatedReport(rootDir, liveResult.warnings);
+  const pushOutputs = config.autoPushOnDaily
+    ? await pushConfiguredChannels(config, rootDir)
+    : [];
   return {
     reportPath: result.reportPath,
     importedFiles,
+    pushOutputs,
   };
 }

@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdtempSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -10,7 +10,23 @@ describe("runDailyPipeline", () => {
   test("collects live data, imports third-party csv files, and writes a validated report", async () => {
     const rootDir = mkdtempSync(path.join(tmpdir(), "hot-ec-news-daily-"));
     const importsDir = path.join(rootDir, "data", "imports");
-    await import("node:fs").then(({ mkdirSync }) => mkdirSync(importsDir, { recursive: true }));
+    mkdirSync(importsDir, { recursive: true });
+    mkdirSync(path.join(rootDir, "config"), { recursive: true });
+    writeFileSync(
+      path.join(rootDir, "config", "app.json"),
+      JSON.stringify({
+        autoPushOnDaily: true,
+        sources: [
+          { provider: "taobao", enabled: true, tier: "primary", kind: "platform_suggestions" },
+          { provider: "jd", enabled: true, tier: "primary", kind: "platform_suggestions" },
+          { provider: "chanmama", enabled: true, tier: "secondary", kind: "third_party" }
+        ],
+        pushChannels: [
+          { type: "wecom", enabled: true, dryRun: true }
+        ]
+      }),
+      "utf8",
+    );
     copyFileSync(
       path.resolve("fixtures/third-party/chanmama-sample.csv"),
       path.join(importsDir, "chanmama-sample.csv"),
@@ -43,6 +59,7 @@ describe("runDailyPipeline", () => {
 
     const result = await runDailyPipeline(rootDir, fetchStub);
     expect(result.importedFiles).toContain("chanmama-sample.csv");
+    expect(result.pushOutputs).toHaveLength(1);
     expect(existsSync(result.reportPath)).toBe(true);
   });
 });

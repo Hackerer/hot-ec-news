@@ -18,6 +18,17 @@ export type Provider =
   | "magicmirror"
   | "manual";
 
+export const providerValues = [
+  "taobao",
+  "jd",
+  "douyin",
+  "chanmama",
+  "feigua",
+  "qiangua",
+  "magicmirror",
+  "manual",
+] as const satisfies readonly Provider[];
+
 export type ValidationStatus = "validated" | "primary_only" | "secondary_only";
 
 export interface CollectedHotword {

@@ -6,6 +6,11 @@ export function createDefaultConfig(): AppConfig {
     reportDir: "data/reports",
     databasePath: "data/db/hot-ec-news.sqlite",
     categories: ["apparel", "shoes", "jewelry"],
+    seeds: {
+      apparel: ["连衣裙", "防晒衣", "衬衫"],
+      shoes: ["运动鞋", "短靴", "凉鞋"],
+      jewelry: ["项链", "戒指", "耳钉"],
+    },
     sources: [
       {
         provider: "taobao",
@@ -26,5 +31,21 @@ export function createDefaultConfig(): AppConfig {
         kind: "third_party",
       },
     ],
+    pushChannels: [
+      {
+        type: "wecom",
+        enabled: false,
+        dryRun: true,
+      },
+      {
+        type: "email",
+        enabled: false,
+        dryRun: true,
+      },
+    ],
+    autoPushOnDaily: false,
+    scheduler: {
+      defaultTime: "09:00",
+    },
   };
 }

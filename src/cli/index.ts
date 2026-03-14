@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 
+import { loadAppConfig } from "../config/load-config.js";
 import { generateScheduleFile } from "../pipeline/generate-schedules.js";
 import { buildValidatedReport, importThirdPartyFile } from "../pipeline/import-third-party.js";
 import { pushLatestReport, type PushLatestReportOptions } from "../pipeline/push-latest-report.js";
@@ -18,6 +19,15 @@ program
   .name("hot-ec-news")
   .description("Cross-platform ecommerce hot keyword pipeline")
   .option("--root <path>", "Override workspace root");
+
+program
+  .command("config:show")
+  .description("Show the resolved application configuration")
+  .action(() => {
+    const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
+    const config = loadAppConfig(rootDir);
+    console.log(JSON.stringify(config, null, 2));
+  });
 
 program
   .command("init")
@@ -86,6 +96,7 @@ program
     const result = await runDailyPipeline(rootDir);
     console.log(`Daily pipeline completed.`);
     console.log(`Imported files: ${result.importedFiles.join(", ") || "(none)"}`);
+    console.log(`Push outputs: ${result.pushOutputs.join(", ") || "(none)"}`);
     console.log(`Report path: ${result.reportPath}`);
   });
 
@@ -125,10 +136,15 @@ program
   .command("schedule:generate")
   .description("Generate a macOS or Windows scheduler file for the daily pipeline")
   .requiredOption("--platform <platform>", "macos or windows")
-  .option("--time <time>", "Daily time in HH:MM", "09:00")
+  .option("--time <time>", "Daily time in HH:MM")
   .action((options: { platform: "macos" | "windows"; time: string }) => {
     const rootDir = resolveRootDir(program.opts<{ root?: string }>().root);
-    const filePath = generateScheduleFile(options.platform, options.time, rootDir);
+    const config = loadAppConfig(rootDir);
+    const filePath = generateScheduleFile(
+      options.platform,
+      options.time ?? config.scheduler.defaultTime,
+      rootDir,
+    );
     console.log(`Schedule file: ${filePath}`);
   });
 

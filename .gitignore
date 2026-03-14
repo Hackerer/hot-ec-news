@@ -4,3 +4,4 @@ dist
 data
 npm-debug.log*
 coverage
+config/app.json

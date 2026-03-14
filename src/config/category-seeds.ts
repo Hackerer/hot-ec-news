@@ -1,4 +1,5 @@
 import type { Category } from "../types/hotword.js";
+import type { AppConfig } from "./schema.js";
 
 export const categorySeeds: Record<Exclude<Category, "unknown">, string[]> = {
   apparel: ["连衣裙", "防晒衣", "衬衫"],
@@ -8,4 +9,8 @@ export const categorySeeds: Record<Exclude<Category, "unknown">, string[]> = {
 
 export function allSeeds(): string[] {
   return [...new Set(Object.values(categorySeeds).flat())];
+}
+
+export function seedsFromConfig(config: AppConfig): string[] {
+  return [...new Set(Object.values(config.seeds).flat())];
 }

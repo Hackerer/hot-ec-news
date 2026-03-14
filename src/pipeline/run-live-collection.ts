@@ -1,11 +1,10 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { allSeeds } from "../config/category-seeds.js";
-import { createDefaultConfig } from "../config/defaults.js";
+import { seedsFromConfig } from "../config/category-seeds.js";
+import { loadAppConfig } from "../config/load-config.js";
 import { buildDailyReport } from "../core/aggregate.js";
-import { collectJdSuggestions } from "../collectors/jd-suggestions.js";
-import { collectTaobaoSuggestions } from "../collectors/taobao-suggestions.js";
+import { listEnabledLiveCollectors } from "../collectors/registry.js";
 import type { FetchLike } from "../collectors/types.js";
 import { renderMarkdownReport } from "../reports/render-markdown.js";
 import { HotwordDatabase } from "../storage/database.js";
@@ -29,46 +28,27 @@ export async function runLiveCollection(
 ): Promise<LiveCollectionResult> {
   const rootDir = resolveRootDir(explicitRoot);
   const paths = createAppPaths(rootDir);
-  const config = createDefaultConfig();
+  const config = loadAppConfig(rootDir);
 
   ensureAppDirectories(paths);
 
   const database = new HotwordDatabase(paths.dbFile);
   database.init();
 
-  const enabledProviders = new Set(
-    (process.env.HOT_EC_NEWS_ENABLED_PROVIDERS ?? "taobao,jd")
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean),
-  );
-  const seeds = allSeeds();
+  const seeds = seedsFromConfig(config);
+  const collectors = listEnabledLiveCollectors(config);
   const collected = [];
   const warnings: string[] = [];
 
   for (const seed of seeds) {
-    if (enabledProviders.has("taobao")) {
+    for (const collector of collectors) {
       try {
-        const taobao = await withRetries(
-          () => collectTaobaoSuggestions(seed, fetchImpl, capturedAt),
-          2,
-        );
-        writeRawSnapshot(rootDir, taobao.provider, seed, capturedAt, taobao.rawPayload);
-        collected.push(...taobao.records);
+        const result = await withRetries(() => collector.collect(seed, fetchImpl, capturedAt), 2);
+        writeRawSnapshot(rootDir, result.provider, seed, capturedAt, result.rawPayload);
+        collected.push(...result.records);
       } catch (error) {
-        const snapshotPath = writeErrorSnapshot(rootDir, "taobao", seed, capturedAt, error);
-        warnings.push(`淘宝采集失败：${seed}，错误快照 ${snapshotPath}`);
-      }
-    }
-
-    if (enabledProviders.has("jd")) {
-      try {
-        const jd = await withRetries(() => collectJdSuggestions(seed, fetchImpl, capturedAt), 2);
-        writeRawSnapshot(rootDir, jd.provider, seed, capturedAt, jd.rawPayload);
-        collected.push(...jd.records);
-      } catch (error) {
-        const snapshotPath = writeErrorSnapshot(rootDir, "jd", seed, capturedAt, error);
-        warnings.push(`京东采集失败：${seed}，错误快照 ${snapshotPath}`);
+        const snapshotPath = writeErrorSnapshot(rootDir, collector.provider, seed, capturedAt, error);
+        warnings.push(`${collector.provider} 采集失败：${seed}，错误快照 ${snapshotPath}`);
       }
     }
   }
