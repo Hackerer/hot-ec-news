@@ -61,6 +61,7 @@ describe("runDailyPipeline", () => {
 
     const result = await runDailyPipeline(rootDir, fetchStub);
     expect(result.importedFiles).toContain("chanmama-sample.csv");
+    expect(result.skippedFiles).toHaveLength(0);
     expect(result.pushOutputs).toHaveLength(1);
     expect(existsSync(result.reportPath)).toBe(true);
   });
@@ -121,7 +122,10 @@ describe("runDailyPipeline", () => {
 
     await runDailyPipeline(rootDir, fetchStub);
     const secondRunCount = database.listHotwordsByDate(datePrefix).length;
+    const secondRun = await runDailyPipeline(rootDir, fetchStub);
 
     expect(secondRunCount).toBe(firstRunCount);
+    expect(secondRun.importedFiles).toHaveLength(0);
+    expect(secondRun.skippedFiles).toContain("chanmama-sample.csv");
   });
 });

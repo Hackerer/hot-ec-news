@@ -2,6 +2,15 @@ import { DatabaseSync } from "node:sqlite";
 
 import type { CollectedHotword, DailyReport } from "../types/hotword.js";
 
+export interface ProcessedImportRecord {
+  provider: CollectedHotword["provider"];
+  fileName: string;
+  fileHash: string;
+  fileSize: number;
+  processedAt: string;
+  archivePath: string;
+}
+
 export class HotwordDatabase {
   private readonly db: DatabaseSync;
 
@@ -38,6 +47,17 @@ export class HotwordDatabase {
         path TEXT NOT NULL,
         generated_at TEXT NOT NULL,
         summary_json TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS processed_imports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_hash TEXT NOT NULL,
+        file_size INTEGER NOT NULL,
+        processed_at TEXT NOT NULL,
+        archive_path TEXT NOT NULL,
+        UNIQUE(provider, file_name, file_hash)
       );
     `);
   }
@@ -290,5 +310,70 @@ export class HotwordDatabase {
       generatedAt: String(row.generatedAt),
       summary: JSON.parse(String(row.summaryJson)) as DailyReport,
     };
+  }
+
+  hasProcessedImport(provider: CollectedHotword["provider"], fileName: string, fileHash: string): boolean {
+    const row = this.db
+      .prepare(`
+        SELECT 1 AS found
+        FROM processed_imports
+        WHERE provider = ? AND file_name = ? AND file_hash = ?
+        LIMIT 1
+      `)
+      .get(provider, fileName, fileHash) as Record<string, unknown> | undefined;
+
+    return Boolean(row?.found);
+  }
+
+  saveProcessedImport(record: ProcessedImportRecord): void {
+    this.db
+      .prepare(`
+        INSERT INTO processed_imports (
+          provider,
+          file_name,
+          file_hash,
+          file_size,
+          processed_at,
+          archive_path
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(provider, file_name, file_hash) DO UPDATE SET
+          file_size = excluded.file_size,
+          processed_at = excluded.processed_at,
+          archive_path = excluded.archive_path
+      `)
+      .run(
+        record.provider,
+        record.fileName,
+        record.fileHash,
+        record.fileSize,
+        record.processedAt,
+        record.archivePath,
+      );
+  }
+
+  listProcessedImports(limit = 20): ProcessedImportRecord[] {
+    const rows = this.db
+      .prepare(`
+        SELECT
+          provider,
+          file_name AS fileName,
+          file_hash AS fileHash,
+          file_size AS fileSize,
+          processed_at AS processedAt,
+          archive_path AS archivePath
+        FROM processed_imports
+        ORDER BY processed_at DESC
+        LIMIT ?
+      `)
+      .all(limit) as Array<Record<string, unknown>>;
+
+    return rows.map((row) => ({
+      provider: String(row.provider) as ProcessedImportRecord["provider"],
+      fileName: String(row.fileName),
+      fileHash: String(row.fileHash),
+      fileSize: Number(row.fileSize),
+      processedAt: String(row.processedAt),
+      archivePath: String(row.archivePath),
+    }));
   }
 }

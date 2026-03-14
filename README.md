@@ -31,6 +31,7 @@ npm test
 - `npx tsx src/cli/index.ts import:third-party --provider chanmama --file fixtures/third-party/chanmama-sample.csv`: import a third-party CSV export
 - `npm run report:validated`: build a validated report from the latest collected date
 - `npm run run:daily`: run live collection, auto-import files from `data/imports`, and generate a validated report
+- `run:daily` now reports both `Imported files` and `Skipped files` for third-party CSVs
 - `npx tsx src/cli/index.ts config:show`: inspect the resolved config after defaults + `config/app.json`
 - `npm run push:report -- --channel wecom --dry-run`: preview a push payload
 - `npm run schedule:generate -- --platform macos --time 09:00`: generate a scheduler file
@@ -68,4 +69,5 @@ npm test
 - [v10 report](docs/reports/v10.md)
 - [v11 report](docs/reports/v11.md)
 - [v12 report](docs/reports/v12.md)
+- [v13 report](docs/reports/v13.md)
 - [Final acceptance](docs/acceptance/final-acceptance.md)

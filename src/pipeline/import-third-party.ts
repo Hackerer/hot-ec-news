@@ -1,4 +1,5 @@
-import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 
 import { buildDailyReport } from "../core/aggregate.js";
@@ -13,6 +14,18 @@ export interface ThirdPartyImportResult {
   imported: number;
   provider: Provider;
   archivePath: string;
+  fileHash: string;
+  fileName: string;
+  fileSize: number;
+}
+
+export function buildImportFileFingerprint(filePath: string): { fileHash: string; fileSize: number } {
+  const source = statSync(filePath);
+  const hash = createHash("sha1").update(path.basename(filePath)).update(String(source.size)).update(String(source.mtimeMs)).digest("hex");
+  return {
+    fileHash: hash,
+    fileSize: source.size,
+  };
 }
 
 export function importThirdPartyFile(
@@ -41,11 +54,24 @@ export function importThirdPartyFile(
   mkdirSync(archiveDir, { recursive: true });
   const archivePath = path.join(archiveDir, path.basename(filePath));
   copyFileSync(filePath, archivePath);
+  const { fileHash, fileSize } = buildImportFileFingerprint(filePath);
+  const fileName = path.basename(filePath);
+  database.saveProcessedImport({
+    provider,
+    fileName,
+    fileHash,
+    fileSize,
+    processedAt: capturedAt,
+    archivePath,
+  });
 
   return {
     imported: records.length,
     provider,
     archivePath,
+    fileHash,
+    fileName,
+    fileSize,
   };
 }
 

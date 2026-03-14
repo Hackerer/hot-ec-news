@@ -99,6 +99,7 @@ program
     const result = await runDailyPipeline(rootDir);
     console.log(`Daily pipeline completed.`);
     console.log(`Imported files: ${result.importedFiles.join(", ") || "(none)"}`);
+    console.log(`Skipped files: ${result.skippedFiles.join(", ") || "(none)"}`);
     console.log(`Push outputs: ${result.pushOutputs.join(", ") || "(none)"}`);
     console.log(`Report path: ${result.reportPath}`);
   });
