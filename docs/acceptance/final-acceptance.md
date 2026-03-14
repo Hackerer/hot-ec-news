@@ -22,6 +22,7 @@
 16. `v16` recent run history，直接查看最近几次 pipeline 运行结果
 17. `v17` 报告模型升级，增加按品类的整体 Top15 与平台榜结构
 18. `v18` 平台榜元信息升级，增加平台信源类型、总词数和稳定排序
+19. `v19` Markdown 日报切换到“品类总榜 + 分平台榜”结构
 
 ## 验收项
 
@@ -46,6 +47,7 @@
 - 可直接查看最近几次 pipeline 运行结果，判断是否连续稳定
 - 报告数据模型可承载“每个品类先整体 Top15，再分平台 Top15”
 - 平台榜具备可渲染所需的元信息和稳定顺序
+- Markdown 日报已按“每个品类先整体 Top15，再分平台 Top15”输出
 
 ## 实际结果
 
@@ -71,6 +73,7 @@
 - recent history：`runs` 和 `status` 已能展示最近几次 pipeline 结果，并暴露失败错误信息
 - category structure：报告数据模型已为每个类目产出 `overallItems` 和 `platformSections`
 - platform meta：平台榜现在会区分第一/第二信源，并记录该平台在该类目下的词条数
+- markdown structure：类目章节下已先输出整体搜索热词 Top15，再输出各平台 Top15
 
 ## 推荐生产使用方式
 

@@ -25,7 +25,7 @@ function makeRecord(options: {
 }
 
 describe("renderMarkdownReport", () => {
-  test("renders confidence and review sections", () => {
+  test("renders category-first top15 sections before highlights", () => {
     const previous = [
       makeRecord({
         keyword: "连衣裙女夏",
@@ -63,6 +63,11 @@ describe("renderMarkdownReport", () => {
     const report = buildDailyReport(current, "Asia/Shanghai", [], previous);
     const markdown = renderMarkdownReport(report);
 
+    expect(markdown).toContain("## 服饰热词");
+    expect(markdown).toContain("### 整体搜索热词 Top15");
+    expect(markdown).toContain("### 淘宝/天猫 Top15（第一信源");
+    expect(markdown).toContain("### 蝉妈妈 Top15（第二信源");
+    expect(markdown.indexOf("### 整体搜索热词 Top15")).toBeLessThan(markdown.indexOf("### 淘宝/天猫 Top15"));
     expect(markdown).toContain("## 高可信热词");
     expect(markdown).toContain("## 待人工复核");
     expect(markdown).toContain("可信度 高");

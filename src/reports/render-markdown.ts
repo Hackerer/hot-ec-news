@@ -19,6 +19,11 @@ const reviewFlagLabels = {
   low_confidence: "低可信度",
 } as const;
 
+const sourceTierLabels = {
+  primary: "第一信源",
+  secondary: "第二信源",
+} as const;
+
 export function renderMarkdownReport(report: DailyReport): string {
   const lines: string[] = [
     "# 每日电商热词日报",
@@ -45,12 +50,13 @@ export function renderMarkdownReport(report: DailyReport): string {
 
   for (const section of report.sections) {
     lines.push(`## ${section.title}`, "");
-    if (section.items.length === 0) {
+    lines.push("### 整体搜索热词 Top15", "");
+    if (section.overallItems.length === 0) {
       lines.push("- 当日暂无词条", "");
       continue;
     }
 
-    for (const [index, item] of section.items.entries()) {
+    for (const [index, item] of section.overallItems.entries()) {
       const trendLabel =
         item.trend.status === "new"
           ? "新上榜"
@@ -60,6 +66,29 @@ export function renderMarkdownReport(report: DailyReport): string {
       );
     }
     lines.push("");
+
+    for (const platformSection of section.platformSections) {
+      lines.push(
+        `### ${platformSection.title} Top15（${sourceTierLabels[platformSection.sourceTier]}，共 ${platformSection.totalItems} 词）`,
+        "",
+      );
+
+      if (platformSection.items.length === 0) {
+        lines.push("- 当日暂无词条", "");
+        continue;
+      }
+
+      for (const [index, item] of platformSection.items.entries()) {
+        const trendLabel =
+          item.trend.status === "new"
+            ? "新上榜"
+            : `较上次 ${item.trend.deltaScore >= 0 ? "+" : ""}${item.trend.deltaScore.toFixed(2)}`;
+        lines.push(
+          `${index + 1}. ${item.keyword} | 分数 ${item.score.toFixed(2)} | ${trendLabel} | 可信度 ${confidenceBandLabels[item.confidenceBand]} ${item.confidence.toFixed(2)} | 最优排名 ${item.bestRank}`,
+        );
+      }
+      lines.push("");
+    }
   }
 
   lines.push("## 第三方校验结果", "");
