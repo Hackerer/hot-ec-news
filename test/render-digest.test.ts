@@ -25,7 +25,7 @@ function makeRecord(options: {
 }
 
 describe("renderPushDigestMarkdown", () => {
-  test("renders compact push sections from report summary", () => {
+  test("renders category-first push sections from report summary", () => {
     const previous = [
       makeRecord({
         keyword: "连衣裙女夏",
@@ -64,11 +64,54 @@ describe("renderPushDigestMarkdown", () => {
     const digest = renderPushDigestMarkdown("validated-2026-03-14", report);
 
     expect(digest).toContain("# hot-ec-news validated-2026-03-14");
-    expect(digest).toContain("## 高可信热词");
-    expect(digest).toContain("## 待人工复核");
+    expect(digest).toContain("## 服饰热词");
+    expect(digest).toContain("### 整体搜索热词 Top15");
+    expect(digest).toContain("### 淘宝/天猫 Top15（第一信源");
+    expect(digest).toContain("### 蝉妈妈 Top15（第二信源");
     expect(digest).toContain("## 异常");
     expect(digest).toContain("连衣裙女夏");
     expect(digest).toContain("耳钉女");
+  });
+
+  test("falls back cleanly for legacy reports without new category fields", () => {
+    const baseReport = buildDailyReport(
+      [
+        makeRecord({
+          keyword: "防晒衣女",
+          provider: "taobao",
+          sourceTier: "primary",
+          scoreNormalized: 100,
+          capturedAt: "2026-03-14T09:00:00+08:00",
+        }),
+      ],
+      "Asia/Shanghai",
+    );
+    const legacyReport = {
+      generatedAt: baseReport.generatedAt,
+      timezone: baseReport.timezone,
+      sections: baseReport.sections.map((section) => ({
+        category: section.category,
+        title: section.title,
+        items: section.items,
+      })),
+      validationHighlights: baseReport.validationHighlights,
+      totals: {
+        collected: baseReport.totals.collected,
+        aggregated: baseReport.totals.aggregated,
+        categories: baseReport.totals.categories,
+        validated: baseReport.totals.validated,
+        primaryOnly: baseReport.totals.primaryOnly,
+        secondaryOnly: baseReport.totals.secondaryOnly,
+      },
+    } as unknown as Parameters<typeof renderPushDigestMarkdown>[1];
+
+    const digest = renderPushDigestMarkdown("validated-2026-03-14", legacyReport);
+    const html = renderEmailHtml("validated-2026-03-14", legacyReport);
+
+    expect(digest).toContain("## 服饰热词");
+    expect(digest).toContain("### 整体搜索热词 Top15");
+    expect(html).toContain("整体搜索热词 Top15");
+    expect(html).toContain("防晒衣女");
   });
 });
 

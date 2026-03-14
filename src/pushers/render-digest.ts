@@ -17,6 +17,31 @@ const sourceTierLabels = {
   secondary: "第二信源",
 } as const;
 
+function getReportItems(items: AggregatedHotword[] | undefined): AggregatedHotword[] {
+  return Array.isArray(items) ? items : [];
+}
+
+function getOverallItems(section: DailyReport["sections"][number]): AggregatedHotword[] {
+  return getReportItems(section.overallItems ?? section.items);
+}
+
+function getPlatformSections(section: DailyReport["sections"][number]) {
+  return Array.isArray(section.platformSections) ? section.platformSections : [];
+}
+
+function getWarnings(report: DailyReport): string[] {
+  return Array.isArray(report.warnings) ? report.warnings : [];
+}
+
+function getTotals(report: DailyReport) {
+  return {
+    aggregated: report.totals.aggregated ?? 0,
+    highConfidence: report.totals.highConfidence ?? 0,
+    reviewNeeded: report.totals.reviewNeeded ?? 0,
+    newEntries: report.totals.newEntries ?? 0,
+  };
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -36,44 +61,44 @@ function formatHotwordLine(item: AggregatedHotword): string {
 }
 
 export function renderPushDigestMarkdown(reportKey: string, report: DailyReport): string {
+  const totals = getTotals(report);
   const lines: string[] = [
     `# hot-ec-news ${reportKey}`,
     "",
     `生成时间：${report.generatedAt}`,
-    `总词条：${report.totals.aggregated}，高可信：${report.totals.highConfidence}，待复核：${report.totals.reviewNeeded}，新增：${report.totals.newEntries}`,
-    "",
-    "## 高可信热词",
+    `总词条：${totals.aggregated}，高可信：${totals.highConfidence}，待复核：${totals.reviewNeeded}，新增：${totals.newEntries}`,
   ];
 
-  if (report.confidenceHighlights.length === 0) {
-    lines.push("- 当前没有高可信词");
-  } else {
-    for (const item of report.confidenceHighlights.slice(0, 5)) {
-      lines.push(formatHotwordLine(item));
+  for (const section of report.sections) {
+    lines.push("", `## ${section.title}`, "", "### 整体搜索热词 Top15");
+    const overallItems = getOverallItems(section);
+    if (overallItems.length === 0) {
+      lines.push("- 当前没有类目词");
+    } else {
+      for (const [index, item] of overallItems.slice(0, 15).entries()) {
+        lines.push(`${index + 1}. ${formatHotwordLine(item).slice(2)}`);
+      }
+    }
+
+    for (const platformSection of getPlatformSections(section)) {
+      lines.push(
+        "",
+        `### ${platformSection.title} Top15（${sourceTierLabels[platformSection.sourceTier]}，共 ${platformSection.totalItems} 词）`,
+      );
+
+      if (platformSection.items.length === 0) {
+        lines.push("- 当前没有平台词");
+        continue;
+      }
+
+      for (const [index, item] of platformSection.items.slice(0, 15).entries()) {
+        lines.push(`${index + 1}. ${formatHotwordLine(item).slice(2)}`);
+      }
     }
   }
 
-  lines.push("", "## 新增爆发词");
-  if (report.newHighlights.length === 0) {
-    lines.push("- 当前没有新增词");
-  } else {
-    for (const item of report.newHighlights.slice(0, 5)) {
-      lines.push(formatHotwordLine(item));
-    }
-  }
-
-  lines.push("", "## 待人工复核");
-  if (report.reviewHighlights.length === 0) {
-    lines.push("- 当前没有需要复核的词");
-  } else {
-    for (const item of report.reviewHighlights.slice(0, 5)) {
-      const reasons = item.reviewFlags.join(", ");
-      lines.push(`${formatHotwordLine(item)} | 原因 ${reasons}`);
-    }
-  }
-
-  if (report.warnings.length > 0) {
-    lines.push("", "## 异常", ...report.warnings.slice(0, 3).map((warning) => `- ${warning}`));
+  if (getWarnings(report).length > 0) {
+    lines.push("", "## 异常", ...getWarnings(report).slice(0, 3).map((warning) => `- ${warning}`));
   }
 
   return `${lines.join("\n").trim()}\n`;
@@ -106,9 +131,10 @@ function renderHtmlList(items: AggregatedHotword[], emptyText: string, includeRe
 }
 
 export function renderEmailHtml(reportKey: string, report: DailyReport): string {
+  const totals = getTotals(report);
   const categorySections = report.sections
     .map((section) => {
-      const platformBlocks = section.platformSections
+      const platformBlocks = getPlatformSections(section)
         .map(
           (platformSection) => `<h3>${escapeHtml(platformSection.title)} Top15（${sourceTierLabels[platformSection.sourceTier]}，共 ${platformSection.totalItems} 词）</h3>
     ${renderHtmlList(platformSection.items, "当前没有平台词条")}`,
@@ -118,7 +144,7 @@ export function renderEmailHtml(reportKey: string, report: DailyReport): string 
       return `<section>
     <h2>${escapeHtml(section.title)}</h2>
     <h3>整体搜索热词 Top15</h3>
-    ${renderHtmlList(section.overallItems, "当前没有类目词条")}
+    ${renderHtmlList(getOverallItems(section), "当前没有类目词条")}
     ${platformBlocks}
   </section>`;
     })
@@ -145,21 +171,21 @@ export function renderEmailHtml(reportKey: string, report: DailyReport): string 
     <h1>hot-ec-news ${escapeHtml(reportKey)}</h1>
     <p>生成时间：${escapeHtml(report.generatedAt)}</p>
     <div class="summary">
-      <div class="card"><div>聚合词条</div><div class="value">${report.totals.aggregated}</div></div>
-      <div class="card"><div>高可信</div><div class="value">${report.totals.highConfidence}</div></div>
-      <div class="card"><div>待复核</div><div class="value">${report.totals.reviewNeeded}</div></div>
-      <div class="card"><div>新增词</div><div class="value">${report.totals.newEntries}</div></div>
+      <div class="card"><div>聚合词条</div><div class="value">${totals.aggregated}</div></div>
+      <div class="card"><div>高可信</div><div class="value">${totals.highConfidence}</div></div>
+      <div class="card"><div>待复核</div><div class="value">${totals.reviewNeeded}</div></div>
+      <div class="card"><div>新增词</div><div class="value">${totals.newEntries}</div></div>
     </div>
     ${categorySections}
     <h2>高可信热词</h2>
-    ${renderHtmlList(report.confidenceHighlights, "当前没有高可信词")}
+    ${renderHtmlList(getReportItems(report.confidenceHighlights), "当前没有高可信词")}
     <h2>新增爆发词</h2>
-    ${renderHtmlList(report.newHighlights, "当前没有新增词")}
+    ${renderHtmlList(getReportItems(report.newHighlights), "当前没有新增词")}
     <h2>待人工复核</h2>
-    ${renderHtmlList(report.reviewHighlights, "当前没有需要复核的词", true)}
+    ${renderHtmlList(getReportItems(report.reviewHighlights), "当前没有需要复核的词", true)}
     ${
-      report.warnings.length > 0
-        ? `<h2>异常</h2><ul>${report.warnings
+      getWarnings(report).length > 0
+        ? `<h2>异常</h2><ul>${getWarnings(report)
             .slice(0, 3)
             .map((warning) => `<li class="warning">${escapeHtml(warning)}</li>`)
             .join("")}</ul>`
